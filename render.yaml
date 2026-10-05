@@ -6,11 +6,30 @@
 #    2. No Render: New > Blueprint > aponte para o repositorio
 #    3. O Render cria: PostgreSQL + API (web service) + Frontend (static site)
 #
-#  Ha 3 variaveis que o Render NAO consegue gerar sozinho e que
-#  precisam ser coladas manualmente (veja RENDER.md, passo 3):
+#  -------------------------------------------------
+#  IMPORTANTE - crie pelo BLUEPRINT, nao por "New > Web Service"
+#  -------------------------------------------------
+#  Este repositorio nao tem package.json na raiz (so em backend/ e
+#  frontend/), entao a deteccao automatica do Render nao acha app Node
+#  e cai para Docker. Como tambem nao ha Dockerfile na raiz, o build
+#  falha com:
+#      error: failed to read dockerfile: open Dockerfile: no such file
+#  O Blueprint resolve porque declara runtime e rootDir explicitamente.
+#
+#  Se voce ja criou o servico na mao, corrija em Settings:
+#      Runtime          = Node
+#      Root Directory   = backend
+#      Build Command    = npm ci --include=dev && npm run build
+#      Start Command    = npm run prisma:deploy && npm start
+#
+#  -------------------------------------------------
+#  VARIAVEIS QUE O RENDER NAO GERA SOZINHO
+#  -------------------------------------------------
+#  3 para colar a mao (RENDER.md passo 2):
 #    JWT_PRIVATE_KEY_B64 / JWT_PUBLIC_KEY_B64 / LICENSE_PUBLIC_KEY_B64
-#  Sem as duas primeiras a API nem sobe (o backend valida as chaves
-#  RS256 ANTES de abrir a porta e chama process.exit(1)).
+#  Sem as duas primeiras a API nem sobe: o backend valida as chaves
+#  RS256 ANTES de abrir a porta e chama process.exit(1).
+#
 #
 #  ATENCAO - free tier do Render:
 #    - o Postgres gratuito APAGA o banco depois de 30 dias
@@ -63,19 +82,15 @@ services:
       - key: JWT_SECRET
         generateValue: true
 
-      - key: JWT_EXPIRES_IN
-        value: 7d
-
-      # --- colar manualmente: node -e "console.log(require('crypto').generateKeyPairSync
-      #     ('rsa',{modulusLength:2048,privateKeyEncoding:{type:'pk8',format:'pem'},
-      #     publicKeyEncoding:{type:'spki',format:'pem'}}).privateKey
-      #     ... )" e depois base64. Ver RENDER.md passo 3.
+      # Colar a mao. Gere o par com:  cd backend && npm ci && npm run keys
+      # (o RENDER.md passo 2 explica). Sem estas duas a API nao sobe:
+      # o backend valida as chaves RS256 ANTES de abrir a porta.
       - key: JWT_PRIVATE_KEY_B64
         sync: false
       - key: JWT_PUBLIC_KEY_B64
         sync: false
 
-      # Chave publica da Filitech (esta no .env.example deste repo)
+      # Chave publica da licenca. Valor em .env.example deste repo.
       - key: LICENSE_PUBLIC_KEY_B64
         sync: false
 
