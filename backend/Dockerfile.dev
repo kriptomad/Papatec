@@ -1,0 +1,28 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# openssl: obrigatório para o Prisma detectar a versão do libssl/openssl.
+# Sem ele o "prisma migrate deploy" falha com "Could not parse schema engine
+# response: Error load..." (schema engine não acha a libssl correta).
+# O retry protege contra falha transitória de DNS no índice do Alpine
+# ("DNS: transient error") — o build morre com código != 0 se todas as tentativas falharem.
+RUN for i in 1 2 3 4 5; do \
+      apk add --no-cache python3 make g++ vips-dev openssl && s=0 && break || s=$?; \
+      echo "apk: tentativa $i falhou (codigo $s), nova em 5s..."; sleep 5; \
+    done; [ "${s:-1}" = 0 ] || exit "${s:-1}"
+
+COPY package*.json ./
+# O schema precisa existir ANTES do npm install: package.json tem
+# "postinstall": "prisma generate" e "prisma.schema": "prisma/schema.prisma".
+# Sem esta linha o build falha com "Could not load schema ... file or directory not found".
+COPY prisma ./prisma/
+
+RUN npm install
+
+COPY . .
+RUN npx prisma generate
+
+EXPOSE 3001 9229
+
+CMD ["npm", "run", "dev"]

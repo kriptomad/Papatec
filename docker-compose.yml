@@ -1,0 +1,126 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: papatec-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-papatec}
+      POSTGRES_USER: ${DB_USER:-papatec}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-papatec} -d ${DB_NAME:-papatec}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - papatec-internal
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        LICENSE_PUBLIC_KEY_B64: ${LICENSE_PUBLIC_KEY_B64}
+    container_name: papatec-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-papatec}:${DB_PASSWORD}@db:5432/${DB_NAME:-papatec}?schema=public
+      NODE_ENV: production
+      PORT: 3001
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_PRIVATE_KEY_B64: ${JWT_PRIVATE_KEY_B64}
+      JWT_PUBLIC_KEY_B64: ${JWT_PUBLIC_KEY_B64}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      LICENSE_PUBLIC_KEY_B64: ${LICENSE_PUBLIC_KEY_B64}
+      BACKUP_NETWORK_PATH: /backups
+      BACKUP_SCHEDULE: ${BACKUP_SCHEDULE:-0 12,18 * * *}
+      UPLOADS_PATH: /app/uploads
+      DB_USER: ${DB_USER:-papatec}
+      DB_NAME: ${DB_NAME:-papatec}
+      DB_PASSWORD: ${DB_PASSWORD}
+      # DRM bypass for development/testing (set to 'true' to bypass license check)
+      DRM_BYPASS: ${DRM_BYPASS:-true}
+      # Identificacao de hardware (DRM): lida no host pelo INSTALAR.ps1 e
+      # gravada no .env. Sem ela o HWID dentro do container Linux cairia no
+      # fallback e ficaria IGUAL em todas as maquinas.
+      MACHINE_UUID: ${MACHINE_UUID:-}
+      MACHINE_MAC: ${MACHINE_MAC:-}
+      COMPUTERNAME: ${COMPUTERNAME:-UNKNOWN}
+      # Segredo do POST /api/card-machines/callback. Sem este valor o callback
+      # fica DESLIGADO (fail-closed) em vez de aceitar qualquer chamador.
+      CARD_MACHINE_CALLBACK_TOKEN: ${CARD_MACHINE_CALLBACK_TOKEN:-}
+    volumes:
+      - ./uploads:/app/uploads
+      - ./backups:/backups
+      # Logs persistentes fora do container. A imagem é distroless (sem shell),
+      # então não existe `docker exec ... cat log`; e a ofuscação no build
+      # elimina o console. Sem este volume os logs morriam a cada recreate.
+      - ./logs:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - papatec-internal
+
+  # Frontend compilado (SPA) - somente rede interna, exposto pelo proxy
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: papatec-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    networks:
+      - papatec-internal
+
+  # Entrada pública: HTTPS (certificado auto-assinado gerado na primeira subida)
+  proxy:
+    build:
+      context: ./proxy
+      dockerfile: Dockerfile
+    image: papatec-proxy
+    container_name: papatec-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs
+    command:
+      - /bin/sh
+      - -c
+      - |
+        mkdir -p /etc/nginx/certs
+        if [ ! -f /etc/nginx/certs/localhost.crt ] || [ ! -f /etc/nginx/certs/localhost.key ]; then
+          echo "[proxy] Gerando certificado auto-assinado para localhost (com SAN)..."
+          openssl req -x509 -nodes -newkey rsa:2048 -days 3650 \
+            -keyout /etc/nginx/certs/localhost.key \
+            -out /etc/nginx/certs/localhost.crt \
+            -subj "/CN=localhost" \
+            -addext "subjectAltName=DNS:localhost,DNS:papatec.local,IP:127.0.0.1,IP:::1" \
+            -addext "keyUsage=digitalSignature,keyEncipherment" \
+            -addext "extendedKeyUsage=serverAuth" \
+            -addext "basicConstraints=CA:FALSE"
+        fi
+        exec nginx -g "daemon off;"
+    depends_on:
+      - web
+      - api
+    networks:
+      - papatec-internal
+      - papatec-external
+
+volumes:
+  pg_data:
+    driver: local
+
+networks:
+  papatec-internal:
+    driver: bridge
+    internal: true
+  papatec-external:
+    driver: bridge

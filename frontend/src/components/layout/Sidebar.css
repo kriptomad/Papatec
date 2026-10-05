@@ -1,0 +1,190 @@
+/* Sidebar.css - Estilos para sidebar com tema dark (Argon-inspired) */
+.sidebar-drawer .MuiDrawer-paper {
+  border-right: none !important;
+  background-color: var(--sidebar-bg, #161b22) !important;
+  transition: width 0.25s ease, min-width 0.25s ease;
+  overflow: hidden;
+}
+
+.sidebar-drawer.collapsed .MuiDrawer-paper {
+  width: 72px !important;
+  min-width: 72px !important;
+}
+
+.sidebar-drawer.expanded .MuiDrawer-paper {
+  width: 280px !important;
+  min-width: 280px !important;
+}
+
+/* Lista de navegação */
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.sidebar-nav .MuiListItem-root {
+  border-radius: 10px !important;
+  margin-bottom: 4px !important;
+  transition: all 0.2s ease !important;
+}
+
+.sidebar-nav .MuiListItem-root:hover {
+  background-color: rgba(30, 136, 229, 0.12) !important;
+}
+
+.sidebar-nav .MuiListItem-root.Mui-selected {
+  background-color: rgba(30, 136, 229, 0.16) !important;
+  border-left: 3px solid #1e88e5;
+}
+
+.sidebar-nav .MuiListItem-root.Mui-selected .MuiListItemIcon-root {
+  color: #1e88e5 !important;
+}
+
+.sidebar-nav .MuiListItemIcon-root {
+  color: #8b949e !important;
+  min-width: 40px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-nav .MuiListItemText-primary {
+  color: #e6edf3 !important;
+  font-weight: 500 !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Logo area */
+.sidebar-header {
+  padding: 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+}
+
+.sidebar-header.collapsed {
+  justify-content: center;
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.sidebar-logo img {
+  height: 32px;
+  width: 32px;
+  flex-shrink: 0;
+}
+
+.sidebar-title {
+  color: #1e88e5 !important;
+  font-weight: 700 !important;
+  font-size: 1.1rem !important;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-subtitle {
+  color: #8b949e !important;
+  font-size: 0.75rem !important;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* User area */
+.sidebar-footer {
+  padding: 16px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.sidebar-footer.collapsed {
+  padding: 8px;
+  display: flex;
+  justify-content: center;
+}
+
+.sidebar-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-user-name {
+  color: #e6edf3 !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+}
+
+.sidebar-user-email {
+  color: #8b949e !important;
+  font-size: 0.7rem !important;
+}
+
+/* Collapse toggle button */
+.sidebar-toggle {
+  position: fixed;
+  left: 280px;
+  top: 16px;
+  z-index: 1300;
+  background-color: #161b22 !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  border-top-right-radius: 10px !important;
+  border-bottom-right-radius: 10px !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+  transition: left 0.25s ease !important;
+  color: #8b949e !important;
+}
+
+.sidebar-toggle:hover {
+  background-color: #21262d !important;
+  color: #e6edf3 !important;
+}
+
+.sidebar-toggle.collapsed {
+  left: 72px !important;
+}
+
+.sidebar-toggle .MuiSvgIcon-root {
+  font-size: 18px !important;
+}
+
+/* Mobile drawer */
+@media (max-width: 959px) {
+  .sidebar-toggle {
+    display: none !important;
+  }
+  
+  .sidebar-drawer .MuiDrawer-paper {
+    width: 280px !important;
+  }
+}
+
+/* Scrollbar personalizada para dark */
+.sidebar-nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.15);
+  border-radius: 3px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.25);
+}

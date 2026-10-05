@@ -1,0 +1,118 @@
+# ===========================================
+# PapaTec ERP - .gitignore
+# ===========================================
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Environment files (NUNCA commitar .env com segredos!)
+.env
+.env.local
+.env.*.local
+.env.production
+
+# Licença (contém dados sensíveis do cliente)
+license.json
+backend/license.json
+backend/keys/
+*.pem
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# IDE/Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker/
+
+# Backup files
+backups/
+*.7z
+*.sql
+*.dump
+
+# Uploads (dados dos clientes)
+uploads/
+backend/uploads/
+frontend/public/uploads/
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Prisma
+prisma/migrations/.migration_lock.toml
+
+# OS
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+temp/
+
+# Certificates (generate locally with mkcert)
+certs/
+*.pem
+*.key
+*.crt
+
+# Turbo
+.turbo/
+
+# Vercel/Netlify
+.vercel
+.netlify
+
+# ============================================================
+#  Instalador .exe gerado (artefato de build)
+#  Regerado com:  .\GERAR-INSTALADOR.ps1
+#  Para distribuir, use GitHub Releases (anexe o .exe la) em vez
+#  de versionar um binario que envelhece a cada commit.
+# ============================================================
+PapaTec-Setup*.exe
+build-instalador/
+papatec-payload.zip
+
+# ============================================================
+#  Scripts de depuracao avulsa na raiz (fix_*.py, check_*.py,
+#  test_*.py, generate*.py, write_*.py, verify_*.py, analyze_*.py).
+#  Sao ferramentas de diagnostico de uma sessao, nao parte do
+#  produto: nao vao para o repositorio nem para o instalador.
+#  Ficam no disco. Para versionar alguma, remova da lista abaixo.
+# ============================================================
+/analyze_js.py
+/check_*.py
+/fix_*.py
+/generate*.py
+/test_*.py
+/verify_*.py
+/write_*.py
+
+# Relatorios internos de auditoria
+/AUDITORIA-FORENSE.md
+/ANALISE-ESTRUTURA-SISTURA.md
+/ANALISE-ESTRUTURA-SISTEMA.md

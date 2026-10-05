@@ -1,0 +1,14 @@
+/* Estilos auxiliares da tela de login (Papatec) */
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 420px;
+}

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/logo-papatec-marca.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PapaTec - Sistema Loja</title>
+    <!-- Snapshot sender config (preenchido pelo servidor via template ou via JS) -->
+    <script>
+      window.PAPATEC_SNAPSHOT_CONFIG = {
+        apiBase: '/api',
+        token: localStorage.getItem('backup_machine_token') || '',
+        machineId: localStorage.getItem('papatec_machine_id') || (() => { 
+          const id = 'machine_' + Math.random().toString(36).substring(2, 15); 
+          localStorage.setItem('papatec_machine_id', id); 
+          return id; 
+        })()
+      };
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <!-- Snapshot sender (carregado após a app para ter acesso ao localStorage/token) -->
+    <script src="/scripts/papatec-snapshot-sender.js"></script>
+  </body>
+</html>

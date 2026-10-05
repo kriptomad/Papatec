@@ -1,0 +1,257 @@
+/* MainLayout.css - Dark theme compatible (Argon-inspired) */
+@media (min-width: 960px) {
+  .MuiContainer-maxWidthXl {
+    max-width: 1440px !important;
+  }
+}
+
+/* Scrollbar personalizada dark */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0d1117;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #30363d;
+  border-radius: 4px;
+  border: 2px solid #0d1117;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #484f58;
+}
+
+/* Animações */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+/* Card hover effects */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3) !important;
+}
+
+/* Focus visible para acessibilidade */
+:focus-visible {
+  outline: 2px solid #1e88e5 !important;
+  outline-offset: 2px !important;
+}
+
+/* Print styles */
+@media print {
+  .MuiAppBar-root,
+  .MuiDrawer-root,
+  .MuiButton-root,
+  .MuiIconButton-root,
+  .sidebar-toggle {
+    display: none !important;
+  }
+  
+  .MuiContainer-root {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+  
+  .MuiCard-root {
+    box-shadow: none !important;
+    border: 1px solid #30363d !important;
+  }
+}
+
+/* Loading skeleton dark */
+.MuiSkeleton-root {
+  background: linear-gradient(
+    90deg,
+    #21262d 25%,
+    #30363d 50%,
+    #21262d 75%
+  ) !important;
+  background-size: 200% 100% !important;
+  animation: skeleton-loading 1.5s infinite !important;
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Tooltip dark */
+.MuiTooltip-tooltip {
+  background-color: #161b22 !important;
+  border: 1px solid #30363d !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
+}
+
+/* Table improvements */
+.MuiTableRow-root:hover {
+  background-color: rgba(30, 136, 229, 0.04) !important;
+}
+
+.MuiTableCell-head {
+  background-color: #161b22 !important;
+  color: #8b949e !important;
+  font-weight: 600 !important;
+  border-bottom: 2px solid #30363d !important;
+}
+
+.MuiTableCell-body {
+  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+  color: #e6edf3 !important;
+}
+
+/* Badge / Chip improvements */
+.MuiChip-root {
+  font-weight: 500 !important;
+}
+
+/* Button improvements */
+.MuiButton-root {
+  text-transform: none !important;
+  font-weight: 500 !important;
+  border-radius: 8px !important;
+}
+
+.MuiButton-containedPrimary {
+  background: linear-gradient(135deg, #1e88e5 0%, #1565c0 100%) !important;
+  box-shadow: 0 2px 8px rgba(30, 136, 229, 0.3) !important;
+}
+
+.MuiButton-containedPrimary:hover {
+  background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%) !important;
+  box-shadow: 0 4px 16px rgba(30, 136, 229, 0.4) !important;
+}
+
+.MuiButton-outlinedPrimary {
+  border-color: #1e88e5 !important;
+  color: #1e88e5 !important;
+}
+
+.MuiButton-outlinedPrimary:hover {
+  background-color: rgba(30, 136, 229, 0.08) !important;
+  border-color: #1e88e5 !important;
+}
+
+/* Input improvements */
+.MuiOutlinedInput-root {
+  border-radius: 8px !important;
+}
+
+.MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border-color: #1e88e5 !important;
+}
+
+.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: #1e88e5 !important;
+  border-width: 2px !important;
+}
+
+.MuiInputLabel-root {
+  color: #8b949e !important;
+}
+
+.MuiInputLabel-root.Mui-focused {
+  color: #1e88e5 !important;
+}
+
+/* Autocomplete */
+.MuiAutocomplete-popper .MuiPaper-root {
+  background-color: #161b22 !important;
+  border: 1px solid #30363d !important;
+}
+
+.MuiAutocomplete-option:hover {
+  background-color: rgba(30, 136, 229, 0.12) !important;
+}
+
+.MuiAutocomplete-option[aria-selected="true"] {
+  background-color: rgba(30, 136, 229, 0.16) !important;
+  color: #1e88e5 !important;
+}
+
+/* Dialog */
+.MuiDialog-paper {
+  background-color: #161b22 !important;
+  border: 1px solid #30363d !important;
+}
+
+.MuiDialog-title {
+  color: #e6edf3 !important;
+}
+
+/* Alert */
+.MuiAlert-root {
+  border-radius: 10px !important;
+}
+
+/* Avatar */
+.MuiAvatar-root {
+  background: linear-gradient(135deg, #1e88e5 0%, #1565c0 100%) !important;
+}
+
+/* Progress */
+.MuiLinearProgress-root {
+  border-radius: 4px !important;
+  background-color: #21262d !important;
+}
+
+.MuiLinearProgress-barColorPrimary {
+  background: linear-gradient(90deg, #1e88e5 0%, #58a6ff 100%) !important;
+}
+
+/* Tabs */
+.MuiTabs-indicator {
+  background-color: #1e88e5 !important;
+  height: 3px !important;
+  border-radius: 3px 3px 0 0 !important;
+}
+
+.MuiTab-root {
+  color: #8b949e !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+}
+
+.MuiTab-root.Mui-selected {
+  color: #1e88e5 !important;
+}
+
+/* Accordion */
+.MuiAccordion-root {
+  background-color: #161b22 !important;
+  border: 1px solid #30363d !important;
+  border-radius: 10px !important;
+  margin-bottom: 8px !important;
+}
+
+.MuiAccordionSummary-root {
+  color: #e6edf3 !important;
+}
+
+.MuiAccordionDetails-root {
+  color: #8b949e !important;
+}
+

@@ -1,0 +1,118 @@
+# ============================================================
+#  PapaTec ERP - Blueprint do Render (deploy em 1 clique)
+# ------------------------------------------------------------
+#  Como usar:
+#    1. Suba este repositorio para o GitHub
+#    2. No Render: New > Blueprint > aponte para o repositorio
+#    3. O Render cria: PostgreSQL + API (web service) + Frontend (static site)
+#
+#  Ha 3 variaveis que o Render NAO consegue gerar sozinho e que
+#  precisam ser coladas manualmente (veja RENDER.md, passo 3):
+#    JWT_PRIVATE_KEY_B64 / JWT_PUBLIC_KEY_B64 / LICENSE_PUBLIC_KEY_B64
+#  Sem as duas primeiras a API nem sobe (o backend valida as chaves
+#  RS256 ANTES de abrir a porta e chama process.exit(1)).
+#
+#  ATENCAO - free tier do Render:
+#    - o Postgres gratuito APAGA o banco depois de 30 dias
+#    - o web service gratuito DORME depois de 15 min sem uso
+#      (o primeiro request apos o sono demora ~1 min)
+#    Para testar de verdade, use o plano Starter do banco.
+# ============================================================
+
+databases:
+  - name: papatec-db
+    # Starter: o free expira em 30 dias e apaga tudo.
+    plan: starter
+    postgresVersion: "16"
+    databaseName: papatec
+    user: papatec
+
+services:
+  # ---------------------------------------------------------------
+  #  API (backend Node) - porta fornecida pelo Render via $PORT
+  # ---------------------------------------------------------------
+  - type: web
+    name: papatec-api
+    runtime: node
+    plan: starter
+    rootDir: backend
+
+    # --include=dev e obrigatorio: o build usa esbuild e
+    # javascript-obfuscator, que sao devDependencies. Sem isso o
+    # `npm ci` pula os devDeps (NODE_ENV=production) e o build quebra.
+    buildCommand: npm ci --include=dev && npm run build
+
+    # As migracoes rodam no start. O bootstrap do backend FAZ throw se as
+    # tabelas nao existirem (settingsService.ensureDefaults), entao
+    # pular esta etapa deixa o servico em crash-loop.
+    startCommand: npm run prisma:deploy && npm start
+
+    healthCheckPath: /api/health
+    autoDeploy: true
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      - key: DATABASE_URL
+        fromDatabase:
+          name: papatec-db
+          property: connectionString
+
+      # Segredo aleatorio seguro, gerado pelo proprio Render
+      - key: JWT_SECRET
+        generateValue: true
+
+      - key: JWT_EXPIRES_IN
+        value: 7d
+
+      # --- colar manualmente: node -e "console.log(require('crypto').generateKeyPairSync
+      #     ('rsa',{modulusLength:2048,privateKeyEncoding:{type:'pk8',format:'pem'},
+      #     publicKeyEncoding:{type:'spki',format:'pem'}}).privateKey
+      #     ... )" e depois base64. Ver RENDER.md passo 3.
+      - key: JWT_PRIVATE_KEY_B64
+        sync: false
+      - key: JWT_PUBLIC_KEY_B64
+        sync: false
+
+      # Chave publica da Filitech (esta no .env.example deste repo)
+      - key: LICENSE_PUBLIC_KEY_B64
+        sync: false
+
+      # Sem licenca ativa o LicenseGuard responde 403 em tudo.
+      # Deixe "true" enquanto for teste; em producao de verdade, "false".
+      - key: DRM_BYPASS
+        value: "true"
+
+      # O disco do Render e efemero: some a cada deploy. Para arquivos
+      # de verdade, troque por um disco persistente do Render.
+      - key: UPLOADS_PATH
+        value: /opt/render/project/src/uploads
+      - key: BACKUP_NETWORK_PATH
+        value: /opt/render/project/src/backups
+      - key: BACKUP_SCHEDULE
+        value: 0 12,18 * * *
+
+      - key: CARD_MACHINE_CALLBACK_TOKEN
+        generateValue: true
+
+  # ---------------------------------------------------------------
+  #  Frontend (SPA) - site estatico do Render
+  # ---------------------------------------------------------------
+  - type: web
+    name: papatec-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    autoDeploy: true
+    routes:
+      - type: rewrite
+        destination: /index.html
+
+    envVars:
+      # Tem que incluir o /api porque o backend monta as rotas em /api.
+      # Render nao consegue montar "https://" + host + "/api" numa
+      # expressao, entao este valor e preenchido no passo 4 do RENDER.md.
+      - key: VITE_API_URL
+        sync: false

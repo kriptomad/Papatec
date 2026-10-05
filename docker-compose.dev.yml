@@ -1,0 +1,58 @@
+# Override para desenvolvimento local (hot-reload)
+# Uso: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+#
+# Em dev: API em http://localhost:3001 e Vite em http://localhost:5173
+# Produção: use apenas `docker compose up -d --build` (proxy em 80/443).
+
+services:
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - ./uploads:/app/uploads
+    environment:
+      NODE_ENV: development
+    command: npm run dev
+    ports:
+      - "3001:3001"
+      - "9229:9229"  # Debug (node --inspect)
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      VITE_API_URL: http://localhost:3001/api
+    command: npm run dev -- --host 0.0.0.0
+    ports:
+      - "5173:5173"
+
+  # Em desenvolvimento o proxy TLS não é usado (Vite entrega a SPA)
+  proxy:
+    profiles:
+      - production
+
+  db:
+    ports:
+      - "5432:5432"  # Exposto para DBeaver / Prisma Studio locais
+
+# ---------------------------------------------------------------------------
+# Em desenvolvimento os serviços (api/web/db) ficam SOMENTE na rede interna, e
+# o Docker Desktop não publica no host a porta de um contêiner que não esteja
+# em ao menos uma rede normal (networks sem `internal: true`) - as portas
+# 3001/5173/5432 ficam registradas no contêiner, porém sem listener no host,
+# e http://localhost:5173 / a API não respondem (o instalador falha no
+# "aguardando a API"). Por isso, aqui a rede interna vira normal: no
+# desenvolvimento isso é seguro (as portas são consumidas só nesta máquina e o
+# container precisa de internet para hot-reload/npm) e o modo produção continua
+# isolado, pois usa apenas o docker-compose.yml, que mantém internal: true.
+# ---------------------------------------------------------------------------
+networks:
+  papatec-internal:
+    internal: false

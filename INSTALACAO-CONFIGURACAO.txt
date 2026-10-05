@@ -1,0 +1,460 @@
+================================================================================
+   PAPATEC - SISTEMA LOJA - INSTALACAO E CONFIGURACAO NA MAQUINA DO CLIENTE
+   Licenciamento e suporte: FILITECH
+   Documento operacional - versao 1.1
+================================================================================
+
+Este documento descreve, passo a passo, como instalar e configurar o sistema
+PapaTec - Sistema Loja em uma maquina (servidor ou PC da assistencia tecnica) que
+funcionara de forma 100% local/on-premise.
+
+A licenca de uso e emitida e assinada pela Filitech. O cliente apenas informa
+o Hardware ID da maquina e recebe o token de ativacao.
+
+
+--------------------------------------------------------------------------------
+SUMARIO
+--------------------------------------------------------------------------------
+  1. O que voce recebe
+  2. Requisitos da maquina host
+  3. ETAPA 1 - Configurar o sistema (.env e pastas)
+  4. ETAPA 2 - Subir o sistema (Docker Compose)
+  5. ETAPA 3 - Ativacao da licenca (envio do Hardware ID a Filitech)
+  6. ETAPA 4 - Primeiro acesso: administrador
+  7. Painel do administrador (configurar tudo)
+  8. Backups automaticos e restauracao
+  9. HTTPS / certificados
+ 10. Seguranca e comportamento sem licenca
+ 11. Comandos uteis
+ 12. Solucao de problemas
+ 13. Atualizacao do sistema
+ 14. Suporte e contato
+
+
+================================================================================
+1. O QUE VOCE RECEBE
+================================================================================
+
+A pasta do sistema contem tudo o que e necessario para rodar:
+
+    PapaTec ERP\
+      docker-compose.yml        - orquestracao (PostgreSQL + API + Web + Proxy)
+      docker-compose.dev.yml - modo desenvolvimento (hot reload)
+      nginx.conf                - proxy reverso com TLS
+      .env / .env.example       - configuracao da maquina
+      INSTALACAO-CONFIGURACAO.txt (este arquivo)
+      start.bat / init.ps1      - inicializadores Windows
+      backend\                  - API (bundle ofuscado + migracoes Prisma)
+      frontend\                 - SPA React compilada
+      proxy\                    - nginx de borda (gera certificado)
+      uploads\                  - fotos/anexos (criada automaticamente)
+      backups\                  - arquivos de backup (criada automaticamente)
+      certs\                    - certificados TLS (criada automaticamente)
+
+NAO ha instalacao manual de banco de dados, de Node.js ou de bibliotecas:
+tudo roda em containers Docker.
+
+
+================================================================================
+2. REQUISITOS DA MAQUINA HOST
+================================================================================
+
+  - Windows 10/11 ou Windows Server 2019+ (tambem funciona em Linux)
+  - Docker Desktop 24+ com Docker Compose v2 (plugin `docker compose`)
+  - Portas livres: 80 (HTTP) e 443 (HTTPS)
+  - Memoria: 4 GB livres no minimo (6 GB recomendados)
+  - Disco: 5 GB livres + espaco dos backups
+
+Verificacao rapida (PowerShell):
+
+    docker --version
+    docker compose version
+
+Se os comandos responderem, o ambiente esta pronto.
+
+
+================================================================================
+3. ETAPA 1 - CONFIGURAR O SISTEMA (.env E PASTAS)
+================================================================================
+
+3.1 Abra o arquivo:
+
+    PapaTec ERP\.env
+
+3.2 Preencha APENAS dois campos (os demais ja vem configurados):
+
+    DB_PASSWORD=<senha forte para o banco de dados>
+    JWT_SECRET=<chave aleatoria, minimo 32 caracteres>
+
+  DICA: se voce usar o INSTALAR.bat (opcao A da secao 4), esses dois campos
+  sao gerados automaticamente com valores aleatorios - nada para editar.
+
+  Exemplo de chave forte (PowerShell):
+
+    -join ((48..110) | ForEach-Object { [char](Get-Random -Minimum 65 -Maximum 122) })
+
+  IMPORTANTE: a variavel LICENSE_PUBLIC_KEY_B64 ja vem preenchida e validada
+  pelo laboratorio. NAO a altere nem a apague - sem ela o sistema sobe, porem
+  bloqueia todas as rotas (403 SYSTEM_LOCKED_DRM_VIOLATION).
+
+3.3 Pastas de dados (o Docker cria automaticamente, mas pode pre-criar):
+
+    mkdir uploads
+    mkdir backups
+    mkdir certs
+
+  Para gravar os backups em um compartilhamento de rede, edite o volume do
+  servico `api` no docker-compose.yml. Exemplo Windows/SMB:
+
+      - \\\\SERVIDOR\\BackupsPapaTec:/backups
+
+  Tambem e possivel configurar o caminho direto pela interface (secao 7).
+
+
+================================================================================
+4. ETAPA 2 - SUBIR O SISTEMA (DOCKER COMPOSE)
+================================================================================
+
+  OPCAO A - INSTALADOR RECOMENDADO (Windows)
+
+    D clique duplo em   INSTALAR.bat
+
+    Ele faz tudo automaticamente:
+      - verifica se o Docker/Compose estao instalados e rodando
+      - cria o .env (gera DB_PASSWORD e JWT_SECRET aleatorios)
+      - valida o LICENSE_PUBLIC_KEY_B64
+      - cria as pastas uploads, backups e certs
+      - sobe os servicos, aplica as migracoes e checa a saude
+      - abre o navegador na tela certa
+
+    Menu:
+
+      [1] Instalacao TESTE     (apenas para testes/dev, nao usar no cliente)
+      [2] Instalacao PRODUCAO  (recomendado para o cliente)
+      [3] Status / saude
+      [4] Logs
+      [5] Backup (criar / listar / restaurar)
+      [6] Licenca (verificar / ativar)
+      [7] Parar (mantem dados)
+      [8] RESET TOTAL (apaga o banco)
+      [9] Sair
+
+    Tambem funciona pelo prompt (dentro da pasta do sistema):
+
+      INSTALAR.bat producao
+      INSTALAR.bat status
+
+  OPCAO B - COMANDO DIRETO
+
+  IMPORTANTE: o comando precisa ser executado DENTRO da pasta do sistema.
+  Se aparecer "no configuration file provided: not found", voce esta em
+  outra pasta (ex.: C:\Windows\system32) - use o cd primeiro:
+
+    cd "caminho\da\pasta\PapaTec ERP"
+    docker compose up -d --build
+
+  Servicos criados:
+
+    papatec-db     PostgreSQL 15 (volume persistente)
+    papatec-api    API Node (imagem sem shell + bundle ofuscado)
+    papatec-web    Nginx servindo a SPA compilada
+    papatec-proxy  Nginx de borda: 80 -> 443 (TLS), gera certificado
+                   automaticamente se a pasta certs estiver vazia
+
+  Acompanhar a subida:
+
+    docker compose ps
+    docker compose logs -f api
+
+  Saude do sistema:
+
+    https://localhost               (ACEITE o certificado auto-assinado)
+    https://localhost/api/health    (a API responde em JSON)
+
+  As migracoes do banco sao aplicadas automaticamente na subida da API.
+
+  Inicializadores alternativos para Windows:
+
+    start.bat     -> menu interativo (Producao / Dev / Logs / Parar)
+    init.ps1      -> mesma coisa via PowerShell (aceita -DevMode, -ResetDB)
+
+
+================================================================================
+5. ETAPA 3 - ATIVACAO DA LICENCA (ENVIO DO HARDWARE ID A FILITECH)
+================================================================================
+
+5.1 Abra a tela de ativacao:
+
+    https://localhost/activate
+
+  A tela exibe automaticamente o HARDWARE ID desta maquina, no formato:
+
+    XXXX-XXXX-XXXX-XXXX      (ex.: F8A9-2B4C-99X1-P002)
+
+  Copie-o com o botao ao lado.
+
+5.2 Envie o Hardware ID a Filitech:
+
+    e-mail: licenca@filitech.com.br
+    assunto: [PapaTec - Sistema Loja] Solicitacao de licenca - <Nome da Empresa>
+
+  A Filitech responde com o TOKEN DE LICENCA (linha unica que comeca com
+  "eyJ...").
+
+5.3 Na mesma tela (/activate), cole o token recebido e clique em "Ativar".
+    O sistema valida a assinatura e grava a licenca vinculada ao hardware.
+
+  Verificacao:
+
+    https://localhost/api/license/status
+
+  Observacoes:
+   - O Hardware ID e unico desta maquina: uma licenca nao vale para outra.
+   - A validade padrao e de 1 ano; a Filitech envia o novo token antes do
+     vencimento - basta colar na mesma tela.
+   - Se a maquina for trocada, basta enviar o novo Hardware ID a Filitech.
+
+5.4 Ate que a licenca seja ativada, o sistema mostra as telas de licenca e
+    nao opera (isso e o esperado).
+
+
+================================================================================
+6. ETAPA 4 - PRIMEIRO ACESSO: ADMINISTRADOR
+================================================================================
+
+  Abra:   https://localhost/login
+
+  A tela detecta que nao existe usuario e exibe "Criar primeiro
+  administrador". Preencha nome, e-mail e senha (6+ caracteres).
+
+  Em seguida voce e autenticado e entra no Dashboard.
+
+  Regras de acesso:
+
+    ADMIN          -> acesso total: Configuracoes, Backup, Licenca, Usuarios
+    TECHNICIAN     -> clientes, orcamentos, O.S. e estoque
+    RECEPTIONIST   -> clientes, orcamentos e O.S. (sem estoque/financeiro)
+
+
+================================================================================
+7. PAINEL DO ADMINISTRADOR (CONFIGURAR TUDO)
+================================================================================
+
+  Menu  ->  Configuracoes   (rota /settings, somente ADMIN)
+
+  1) Empresa
+     Nome, CNPJ, telefone, e-mail, endereco, rodape de recibo,
+     informacoes do sistema e limpeza de cache local.
+
+  2) Padroes
+     Valor/hora da mao de obra, horas padrao, garantia (dias),
+     validade do orcamento, alerta de estoque minimo, margem de lucro,
+     dias de sessao e auto-cadastro de usuarios.
+
+  3) Backup
+     Caminho de destino (configuravel pela propria interface),
+     agendamento (cron), retencao em dias, inclusao de uploads,
+     botoes: Criar agora / Limpar antigos / Restaurar / Sincronizar /
+     Excluir, com a lista dos arquivos gerados.
+
+  4) Inventario
+     - GESTAO DE ITENS: adicionar item (SKU, nome, categoria, estoque,
+       custo, venda, fornecedor, localizacao), editar preco de custo e
+       de venda, entrada/saida/ajuste de quantidade (com motivo) e
+       exclusao de item (itens com historico sao apenas desativados),
+       com busca por nome/codigo/categoria.
+     - Valoração total (custo, venda, lucro potencial), valoração por
+       categoria, movimentacoes do mes (ENTRADAS IN / SAIDAS OUT /
+       AJUSTES) com tabela de lancamentos e lista de pecas abaixo do
+       minimo com sugestao de compra.
+
+  5) Servicos
+     Catalogo de servicos (Formatacao, Limpeza, Montagem e demais):
+     criar, editar, ativar/desativar, excluir e "Restaurar Padroes".
+     E esse catalogo que aparece na aba SERVICOS dos orcamentos.
+
+  6) Financeiro
+     Receita (pecas / servicos / mao de obra), custos, lucro liquido,
+     margem, ticket medio, valorizacao de estoque, despesas por categoria
+     e lancamento/exclusao de despesas (Aluguel, Energia, Salarios,
+     Materiais, Marketing, Impostos, Outros).
+
+  7) Usuarios
+     Listar, criar (nome, e-mail, senha, perfil), ativar/desativar e
+     excluir. O limite de usuarios e o campo maxUsers da licenca.
+
+  Orcamentos (menu Orcamentos -> Novo) possuem as abas:
+     Dados do Orcamento | Itens (Pecas) | Servicos | Equipamentos
+  A aba Servicos traz o catalogo ja cadastrado com precos e horas.
+
+
+================================================================================
+8. BACKUPS AUTOMATICOS E RESTAURACAO
+================================================================================
+
+  - Agendador interno usa o cron configurado (padrao: 0 12,18 * * *,
+    ou seja 12h e 18h).
+  - Cada backup e um .zip (compressao maxima) contendo:
+        database_dump.json  (dump logico de todas as tabelas)
+        uploads/            (fotos e anexos, se habilitado)
+  - Arquivo:  backups/papatec-backup-AAAA-MM-DD_HHMMSS.zip
+  - Tambem e possivel criar manualmente pela tela (aba Backup).
+
+  Restauracao (destrutivo - faz backup antes de confirmar):
+
+    Configuracoes -> Backup -> icone "Restaurar" no arquivo desejado
+
+  Sincronizacao para rede:
+
+    Configuracoes -> Backup -> icone "Sincronizar"
+    usa o caminho configurado em "Caminho de destino".
+
+  Limpeza automatica: arquivos mais antigos que a "Retencao (dias)"
+  sao removidos no job (ou pelo botao "Limpar Antigos").
+
+  AGENTE DE BACKUP EXTERNO (opcional)
+  Para uma segunda via de backup feita FORA da aplicacao (pg_dump direto no
+  PostgreSQL, compactacao tar.gz, cron proprio), habilite o servico
+  `backup-agent` conforme descrito em  backup-agent\README.md.
+  Ele grava na mesma pasta .\backups, mas com extensao .tar.gz (nao confunde
+  com os .zip do backup embutido).
+
+
+================================================================================
+9. HTTPS / CERTIFICADOS
+================================================================================
+
+  Na primeira subida, o servico `proxy` detecta que nao ha certificado em
+  ./certs e gera automaticamente um auto-assinado:
+
+    certs/localhost.crt
+    certs/localhost.key
+
+  O navegador exibira aviso de "nao confiavel" - clique em "Avancado" ->
+  "Continuar". Em rede local isso e normal.
+
+  Para substituir por certificado proprio (recomendado em producao):
+
+    1) Coloque seus arquivos em  certs\localhost.crt  e  certs\localhost.key
+       (nomes precisam ser esses, ou altere o nginx.conf)
+    2) docker compose restart proxy
+
+  Com mkcert (certificado confiavel localmente):
+
+    choco install mkcert        (ou winget install FiloSottile.mkcert)
+    mkcert -install
+    mkcert -cert-file certs\localhost.crt -key-file certs\localhost.key localhost 127.0.0.1
+    docker compose restart proxy
+
+
+================================================================================
+10. SEGURANCA E COMPORTAMENTO SEM LICENCA
+================================================================================
+
+  - Cada requisicao autenticada e validada por um guard de licenca
+    (assinatura + hardware + validade), com cache de 5 minutos.
+  - Sem licenca valida, o sistema responde:
+        403 { error: { code: "SYSTEM_LOCKED_DRM_VIOLATION" } }
+    e o front leva para a tela de ativacao (/activate).
+  - Rotas que funcionam sem licenca: login, ativacao, consulta de status
+    e saude da API - para que a ativacao seja possivel.
+  - Senhas armazenadas com hash bcrypt; banco isolado na rede interna
+    (nao publica porta fora do compose).
+  - Aprovacao de orcamento usa transacao ACID: aprovacao -> baixa de
+    estoque -> criacao da O.S. (tudo ou nada).
+  - O codigo da API e distribuido como bundle ofuscado.
+
+
+================================================================================
+11. COMANDOS UTEIS
+================================================================================
+
+  cd "caminho\da\pasta\PapaTec ERP"
+
+  docker compose up -d --build          subir/atualizar tudo
+  docker compose down                   parar (mantem dados)
+  docker compose down -v                parar e APAGAR o banco
+  docker compose ps                     status dos containers
+  docker compose logs -f api            logs da API
+  docker compose logs -f proxy          logs do proxy
+  docker compose restart proxy          recarregar TLS/certificados
+
+  docker compose exec db psql -U papatec -d papatec   console do PostgreSQL
+
+  # Modo desenvolvimento (hot reload):
+  docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+
+
+================================================================================
+12. SOLUCAO DE PROBLEMAS
+================================================================================
+
+  SINTOMA: "no configuration file provided: not found"
+    -> O docker compose foi executado FORA da pasta do sistema (ex.:
+       C:\Windows\system32). Entre na pasta primeiro:
+         cd "caminho\da\pasta\PapaTec ERP"
+    -> Ou use o INSTALAR.bat, que ja seleciona a pasta sozinho
+
+  SINTOMA: porta 80/443 ja em uso
+    -> Pare o servico IIS/Apache:  net stop http / net stop w3svc
+    -> Ou troque "80:80" e "443:443" no docker-compose.yml
+
+  SINTOMA: 403 SYSTEM_LOCKED_DRM_VIOLATION em tudo
+    -> Licenca nao ativada, expirada ou LICENSE_PUBLIC_KEY_B64 alterado
+    -> Confira: https://localhost/api/license/status
+    -> Ative/reative em https://localhost/activate
+    -> Se o aviso persistir apos ativar, contate a Filitech
+
+  SINTOMA: token de licenca rejeitado ("Token de licenca invalido")
+    -> Token copiado incompleto (e uma linha unica gigante: copie tudo)
+    -> Token gerado para outro hardware - refaca a solicitacao informando
+       o Hardware ID exibido na tela /activate
+
+  SINTOMA: API reiniciando com falha de migracao
+    -> docker compose logs api
+    -> Verifique DB_PASSWORD no .env e se o db esta healthy: docker compose ps
+
+  SINTOMA: pagina branca
+    -> docker compose logs web
+    -> Reconstrua: docker compose build web --no-cache
+
+  SINTOMA: "limite de usuarios da licenca atingido"
+    -> O numero maximo de usuarios previsto na licenca foi atingido
+    -> Desative usuarios inativos ou solicite uma nova licenca a Filitech
+
+  SINTOMA: backup nao grava em rede
+    -> No modo container, o caminho precisa estar montado no volume
+       do servico `api` (ex.: \\\\SERVIDOR\\Pasta:/backups)
+    -> Depois configure o destino pela interface (Configuracoes > Backup)
+
+  SINTOMA: certificado auto-assinado bloqueado pelo navegador
+    -> Avancado -> Continuar, ou gere com mkcert (secao 9)
+
+
+================================================================================
+13. ATUALIZACAO DO SISTEMA
+================================================================================
+
+  1) Pare os containers:      docker compose down
+  2) Substitua a pasta do sistema (mantendo .env e as pastas
+     uploads\, backups\ e certs\)
+  3) Atualize:                docker compose up -d --build
+  4) As migracoes sao aplicadas automaticamente na subida
+  5) Backup antes de atualizar: Configuracoes > Backup > Criar agora
+
+
+================================================================================
+14. SUPORTE E CONTATO
+================================================================================
+
+  Filitech - Solucoes em Seguranca e Software
+  Licencas e ativacao:  licenca@filitech.com.br
+  Suporte tecnico:      suporte@filitech.com.br
+
+  Ao abrir um chamado, informe:
+   - o Hardware ID (tela /activate)
+   - o output de:  docker compose ps
+   - o output de:  docker compose logs --tail=100 api
+
+  Sistema: PapaTec - Sistema Loja v1.0.0
+================================================================================

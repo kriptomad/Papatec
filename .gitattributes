@@ -1,0 +1,43 @@
+# ============================================================
+#  PapaTec - Normalização de quebras de linha
+# ------------------------------------------------------------
+#  SEM ISSO o Git converte LF <-> CRLF conforme a máquina, e o
+#  instalar.sh chega no servidor Linux com CRLF. Aí o shebang
+#  vira "/bin/bash^M" e o script morre com "bad interpreter".
+#
+#  Regra: LF no repositório, CRLF só onde o Windows exige.
+# ============================================================
+
+# Normaliza tudo para LF no repositório; checkout converte o que precisar.
+* text=auto eol=lf
+
+# .bat precisa de CRLF no checkout (o cmd.exe trata LF de forma inconsistente)
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# PowerShell aceita LF; LF evita o BOM que o Set-Content do Windows 5.1 injeta
+*.ps1 text eol=lf
+
+# Shell script: LF OBRIGATÓRIO, sem exceção
+*.sh text eol=lf
+
+# Binários: nunca tocar
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.pdf  binary
+*.zip  binary
+*.gz   binary
+*.woff binary
+*.woff2 binary
+*.ttf  binary
+*.eot  binary
+
+# Dockerfile e compose: LF (o Docker CoreOS falha com CRLF em scripts)
+Dockerfile      text eol=lf
+*.Dockerfile    text eol=lf
+docker-compose*.yml text eol=lf
+*.conf          text eol=lf
+*.prisma        text eol=lf
