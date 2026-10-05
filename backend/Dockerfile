@@ -11,6 +11,11 @@ ARG LICENSE_PUBLIC_KEY_B64=""
 
 WORKDIR /app
 
+# Pastas gravaveis pelo usuario nonroot. Vao para a imagem final via COPY.
+# O .gitkeep e necessario porque o Docker ignora diretorio vazio.
+RUN mkdir -p /app/uploads /app/logs \
+    && touch /app/uploads/.gitkeep /app/logs/.gitkeep
+
 RUN apt-get update \
     && apt-get install -y --no-install-recommends python3 make g++ libssl-dev openssl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
@@ -47,6 +52,16 @@ COPY --from=builder --chown=nonroot:nonroot /app/prisma ./prisma
 COPY --from=builder --chown=nonroot:nonroot /app/package.json ./package.json
 COPY --from=builder --chown=nonroot:nonroot /app/dist/bundle.obfuscated.js ./bundle.js
 COPY --from=builder --chown=nonroot:nonroot /app/entrypoint.js ./entrypoint.js
+
+# Pastas que o boot precisa criar. A imagem final e Distroless (sem shell, sem
+# mkdir), entao elas nascem aqui no builder e vem por COPY com o dono certo.
+# Sem isso o `ensureUploadsDir()` do main.ts leva EACCES: o container roda como
+# nonroot e /app pertence ao root. No docker-compose local nao aparecia porque
+# o bind mount ./uploads:/app/uploads criava a pasta antes do boot - em quem
+# nao monta volume (Render, por exemplo) o boot morria.
+# O .gitkeep existe porque o Docker nao copia diretorio vazio.
+COPY --from=builder --chown=nonroot:nonroot /app/uploads/.gitkeep ./uploads/.gitkeep
+COPY --from=builder --chown=nonroot:nonroot /app/logs/.gitkeep ./logs/.gitkeep
 
 # Diretórios de trabalho (uploads e backups) - o usuário nonroot precisa escrever
 # (mounts do docker-compose cobrem /app/uploads e /backups)

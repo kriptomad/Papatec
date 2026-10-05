@@ -38,30 +38,96 @@ if (!fs.existsSync(prismaCli)) {
   process.exit(1);
 }
 
+/**
+ * Erro de configuração/schema é PERMANENTE: repetir 30x não muda nada e só
+ * queima 60 segundos antes de o container morrer com um erro que aponta a
+ * outra causa. O caso real: no Render faltava DATABASE_URL e o log mostrava
+ * 30 linhas idênticas de "Falha temporária" - parecia banco instável, mas
+ * era variable de ambiente.
+ *
+ * Erro de conexão (banco ainda subindo, timeout, DNS) é o caso que o retry
+ * existe para tratar, e continua com retry.
+ */
+function classificar(texto) {
+  const permanente = [
+    [/P1012/, 'schema do Prisma inválido ou variável de ambiente faltando'],
+    [/Environment variable not found/i, 'variável de ambiente faltando'],
+    [/P1000/, 'autenticação recusada pelo banco (usuário/senha/URL)'],
+    [/P3005/, 'o banco já tem tabelas sem histórico de migração'],
+    [/P3009/, 'falha ao aplicar migrações'],
+    [/schema validation/i, 'schema do Prisma inválido'],
+  ];
+  for (const [rx, causa] of permanente) {
+    if (rx.test(texto)) return { permanente: true, causa };
+  }
+  return { permanente: false, causa: 'banco ainda não disponível' };
+}
+
+function orientacao(texto) {
+  if (/Environment variable not found:\s*(\S+)/i.test(texto)) {
+    const varName = /Environment variable not found:\s*(\S+)/i.exec(texto)[1];
+    console.error('');
+    console.error('  >>> CAUSA: a variável ' + varName + ' não está definida neste serviço.');
+    console.error('');
+    console.error('  No Render: Environment > Environment Variables > Add, e digite:');
+    console.error('      chave : ' + varName);
+    console.error('      valor : a URL de conexão do seu Postgres');
+    console.error('  Em produção com docker compose, ela é montada a partir de');
+    console.error('  DB_USER / DB_PASSWORD / DB_NAME (veja docker-compose.yml).');
+    console.error('');
+    console.error('  Repetir não vai resolver: variável faltando é erro de configuração.');
+    return;
+  }
+  console.error('');
+  console.error('  >>> Veja a causa acima. Se for o banco, confirme que ele está');
+  console.error('  >>> no MESMO projeto/rede do serviço e que a URL está correta.');
+  console.error('');
+}
+
 for (let i = 1; i <= MAX_RETRIES; i++) {
-  try {
-    console.log(`[Entrypoint] Tentativa ${i}/${MAX_RETRIES}: aplicando migrações...`);
+  console.log(`[Entrypoint] Tentativa ${i}/${MAX_RETRIES}: aplicando migrações...`);
 
-    const result = spawnSync(
-      process.execPath,
-      [prismaCli, 'migrate', 'deploy', `--schema=${schemaPath}`],
-      { stdio: 'inherit', env: { ...process.env }, timeout: 60000 }
-    );
+  // 'pipe' em vez de 'inherit': precisamos ler a saída para classificar o erro.
+  // Ela é repassada logo abaixo, então o log continua igual.
+  const result = spawnSync(
+    process.execPath,
+    [prismaCli, 'migrate', 'deploy', `--schema=${schemaPath}`],
+    { stdio: 'pipe', encoding: 'utf8', env: { ...process.env }, timeout: 60000 }
+  );
 
-    if (result.error) throw result.error;
-    if (result.status !== 0) throw new Error(`migração falhou com código ${result.status}`);
+  if (result.stdout) process.stdout.write(result.stdout);
+  if (result.stderr) process.stderr.write(result.stderr);
 
+  if (result.error) {
+    console.warn(`[Entrypoint] Erro ao executar o Prisma CLI: ${result.error.message}`);
+  } else if (result.status === 0) {
     console.log('[Entrypoint] Migrações aplicadas com sucesso.');
     break;
-  } catch (err) {
-    if (i === MAX_RETRIES) {
-      console.error('[Entrypoint] FALHA CRÍTICA: banco indisponível após', MAX_RETRIES, 'tentativas.');
-      console.error(String(err && err.message));
-      process.exit(1);
-    }
-    console.warn(`[Entrypoint] Falha temporária: ${err.message}. Nova tentativa em ${RETRY_DELAY_MS / 1000}s...`);
-    sleep(RETRY_DELAY_MS);
   }
+
+  const saida = `${result.stdout || ''}\n${result.stderr || ''}`;
+  const { permanente, causa } = classificar(saida);
+
+  if (permanente) {
+    console.error('');
+    console.error('======================================================================');
+    console.error('[Entrypoint] FALHA DE CONFIGURAÇÃO (não adianta repetir)');
+    console.error('  Causa: ' + causa);
+    console.error('======================================================================');
+    orientacao(saida);
+    process.exit(1);
+  }
+
+  if (i === MAX_RETRIES) {
+    console.error('[Entrypoint] FALHA CRÍTICA: banco indisponível após', MAX_RETRIES, 'tentativas.');
+    process.exit(1);
+  }
+
+  console.warn(
+    `[Entrypoint] Falha temporária (${saida.trim().split('\n').pop() || 'sem detalhe'}). ` +
+    `Nova tentativa em ${RETRY_DELAY_MS / 1000}s...`
+  );
+  sleep(RETRY_DELAY_MS);
 }
 
 console.log('[Entrypoint] Iniciando aplicação principal...');
