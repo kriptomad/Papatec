@@ -134,10 +134,6 @@ export function ServiceOrderDetailPage() {
 
   // Extract map results to variables to avoid TS7.0.2 JSX map bug
   const itemRows = os.items.map((item: any) => {
-    // Briefing C: comissão personalizada por item (% sobre o líquido ou R$ fixo)
-    const commission = item.commissionType === 'VALUE'
-      ? (item.commissionValue || 0)
-      : ((item.total || 0) * (item.commissionPercent || 0)) / 100;
     return (
       <TableRow key={item.id}>
         <TableCell><Chip label={item.type === 'PART' ? 'Peça' : item.type === 'LABOR' ? 'Mão de Obra' : 'Serviço'} size="small" color={item.type === 'PART' ? 'primary' : item.type === 'LABOR' ? 'secondary' : 'info'} /></TableCell>
@@ -146,7 +142,6 @@ export function ServiceOrderDetailPage() {
         <TableCell align="right">{formatCurrency(item.unitPrice)}</TableCell>
         <TableCell align="right">{(item.discount || 0) > 0 ? <Typography variant="caption" color="error">{item.discountType === 'PERCENT' ? item.discount + '%' : formatCurrency(item.discount)}</Typography> : '-'}</TableCell>
         <TableCell align="right" sx={{ fontWeight: 500 }}>{formatCurrency(item.total)}</TableCell>
-        <TableCell align="right">{commission > 0 ? formatCurrency(commission) : '-'}</TableCell>
       </TableRow>
     );
   });
@@ -416,7 +411,7 @@ export function ServiceOrderDetailPage() {
         </Grid>
       )}
 
-      {activeTab === 1 && <Card sx={{ mb: 3 }}><CardContent><Typography variant="h6" sx={{ mb: 2 }}>Itens da OS</Typography><TableContainer><Table><TableHead><TableRow><TableCell>Tipo</TableCell><TableCell>Item</TableCell><TableCell>Qtd</TableCell><TableCell align="right">Vl. Unit.</TableCell><TableCell align="right">Desc.</TableCell><TableCell align="right">Total</TableCell><TableCell align="right">Comissão</TableCell></TableRow></TableHead><TableBody>{itemRows}</TableBody></Table></TableContainer><Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2, flexWrap: 'wrap', gap: 1 }}>{typeof os.totalCommission === 'number' && <Typography variant="body1" fontWeight={600} color="success.main">Comissão total: {formatCurrency(os.totalCommission)}</Typography>}<Typography variant="h6" fontWeight={700}>Total: {formatCurrency(os.total)}</Typography></Box></CardContent></Card>}
+      {activeTab === 1 && <Card sx={{ mb: 3 }}><CardContent><Typography variant="h6" sx={{ mb: 2 }}>Itens da OS</Typography><TableContainer><Table><TableHead><TableRow><TableCell>Tipo</TableCell><TableCell>Item</TableCell><TableCell>Qtd</TableCell><TableCell align="right">Vl. Unit.</TableCell><TableCell align="right">Desc.</TableCell><TableCell align="right">Total</TableCell></TableRow></TableHead><TableBody>{itemRows}</TableBody></Table></TableContainer><Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2, flexWrap: 'wrap', gap: 1 }}><Typography variant="h6" fontWeight={700}>Total: {formatCurrency(os.total)}</Typography></Box></CardContent></Card>}
 
       {activeTab === 2 && <Card sx={{ mb: 3 }}><CardContent><Typography variant="h6" sx={{ mb: 2 }}>Equipamentos</Typography>{equipmentRows}</CardContent></Card>}
 

@@ -102,12 +102,11 @@ export function SalePrintPage() {
   const renderVia = (via: ViaType) => {
     const isLoja = via === 'loja';
 
-    const itemCommission = (it: any): number => {
-      const net = Number(it.total) || 0;
-      if (it.commissionType === 'VALUE') return Number(it.commissionValue) || 0;
-      return (net * (Number(it.commissionPercent) || 0)) / 100;
-    };
-    const totalCommission = items.reduce((s: number, it: any) => s + itemCommission(it), 0);
+    // Comissão é informação interna e NÃO sai na nota de venda, em nenhuma
+    // das vias. Ela continua sendo calculada e gravada (ver sales.routes.ts);
+    // quem precisa ver é o vendedor/Admin, na aba "Comissão".
+    // Antes havia `itemCommission`/`totalCommission` e uma coluna "Comissão"
+    // condicionada a isLoja — foi removida por decisão do cliente.
 
     // Extract map results to variables (TS7 rule: nunca .map() JSX direto no return)
     const itemRows = items.map((it: any, idx: number) => (
@@ -234,7 +233,6 @@ export function SalePrintPage() {
                   <TableCell align="right">Qtd</TableCell>
                   <TableCell align="right">Vl. Unit.</TableCell>
                   <TableCell align="right">Desc.</TableCell>
-                  {isLoja && <TableCell align="right">Comissão</TableCell>}
                   <TableCell align="right">Total</TableCell>
                 </TableRow>
               </TableHead>
@@ -260,12 +258,6 @@ export function SalePrintPage() {
                   <TableRow>
                     <TableCell>Frete</TableCell>
                     <TableCell align="right">{formatCurrency(Number(sale.freight))}</TableCell>
-                  </TableRow>
-                )}
-                {isLoja && (
-                  <TableRow>
-                    <TableCell>Comissão total</TableCell>
-                    <TableCell align="right">{formatCurrency(totalCommission)}</TableCell>
                   </TableRow>
                 )}
                 <TableRow sx={{ fontWeight: 700, bgcolor: 'primary.light' }}>

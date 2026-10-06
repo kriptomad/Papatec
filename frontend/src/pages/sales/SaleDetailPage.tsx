@@ -64,12 +64,9 @@ const clientDoc = (client: any): string => {
 
 const returnItems = (ret: any): any[] => ret?.items || [];
 
-/** Comissão calculada de um item (o backend só persiste o total da venda). */
-const itemCommission = (it: any): number => {
-  const net = Number(it.total) || 0;
-  if (it.commissionType === 'VALUE') return Number(it.commissionValue) || 0;
-  return (net * (Number(it.commissionPercent) || 0)) / 100;
-};
+// Comissão é dado interno: não aparece na venda, no detalhe nem na nota.
+// Continua calculada e gravada no banco (ver sales.routes.ts) e é vista pelo
+// vendedor/Admin na aba "Comissão".
 
 // ---------------------------------------------------------------------------
 export function SaleDetailPage() {
@@ -229,14 +226,6 @@ export function SaleDetailPage() {
         ) : '-'}
       </TableCell>
       <TableCell align="right" sx={{ fontWeight: 600 }}>{formatCurrency(it.total)}</TableCell>
-      <TableCell align="right">
-        <Typography variant="caption" color="success.main" fontWeight={600} display="block">
-          {it.commissionType === 'VALUE' ? formatCurrency(it.commissionValue) : `${it.commissionPercent || 0}%`}
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
-          = {formatCurrency(itemCommission(it))}
-        </Typography>
-      </TableCell>
     </TableRow>
   ));
 
@@ -464,7 +453,6 @@ export function SaleDetailPage() {
                       <TableCell align="right">Vl. unit.</TableCell>
                       <TableCell align="right">Desc.</TableCell>
                       <TableCell align="right">Total</TableCell>
-                      <TableCell align="right">Comissão</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -513,10 +501,6 @@ export function SaleDetailPage() {
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                 <Typography fontWeight={700}>Total</Typography>
                 <Typography variant="h5" fontWeight={700} color="primary.main">{formatCurrency(sale.total)}</Typography>
-              </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography color="text.secondary">Comissão total</Typography>
-                <Typography color="success.main" fontWeight={600}>{formatCurrency(sale.totalCommission)}</Typography>
               </Box>
 
               <Divider sx={{ my: 2 }} />

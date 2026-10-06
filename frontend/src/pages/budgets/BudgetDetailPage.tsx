@@ -39,10 +39,8 @@ export function BudgetDetailPage() {
 
   // Extract map results to a const (não colocar .map() direto no return — TS7)
   const itemRows = budget.items.map((item: any) => {
-    // Briefing C: comissão por item (% sobre o líquido ou R$ fixo)
-    const commission = item.commissionType === 'VALUE'
-      ? (item.commissionValue || 0)
-      : ((item.total || 0) * (item.commissionPercent || 0)) / 100;
+    // Comissão é dado interno: não aparece no orçamento (nem no PDF, que já
+    // não trazia). Continua calculada e gravada — ver aba "Comissão".
     return (
       <TableRow key={item.id}>
         <TableCell><Chip label={item.type} size="small" color={item.type === 'PART' ? 'primary' : 'secondary'} /></TableCell>
@@ -50,7 +48,6 @@ export function BudgetDetailPage() {
         <TableCell>{item.qty}</TableCell>
         <TableCell align="right">{formatCurrency(item.unitPrice)}</TableCell>
         <TableCell align="right" sx={{ fontWeight: 500 }}>{formatCurrency(item.total)}</TableCell>
-        <TableCell align="right">{commission > 0 ? formatCurrency(commission) : '-'}</TableCell>
       </TableRow>
     );
   });
@@ -217,7 +214,6 @@ export function BudgetDetailPage() {
                   <TableCell>Qtd</TableCell>
                   <TableCell align="right">Valor Unit.</TableCell>
                   <TableCell align="right">Total</TableCell>
-                  <TableCell align="right">Comissão</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -226,11 +222,6 @@ export function BudgetDetailPage() {
             </Table>
           </TableContainer>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2, flexWrap: 'wrap', gap: 1 }}>
-            {typeof budget.totalCommission === 'number' && (
-              <Typography variant="body1" fontWeight={600} color="success.main">
-                Comissão total: {formatCurrency(budget.totalCommission)}
-              </Typography>
-            )}
             <Typography variant="h6" fontWeight={700}>Total: {formatCurrency(budget.total)}</Typography>
           </Box>
         </CardContent>

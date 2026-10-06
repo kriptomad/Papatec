@@ -843,7 +843,6 @@ export function ServiceOrderFormPage() {
                         <TableCell>Valor Unit.</TableCell>
                         <TableCell>Desconto</TableCell>
                         <TableCell>Total</TableCell>
-                        <TableCell>Comissão</TableCell>
                         <TableCell>Ações</TableCell>
                       </TableRow>
                     </TableHead>
@@ -933,41 +932,6 @@ export function ServiceOrderFormPage() {
                             </TableCell>
                             <TableCell sx={{ fontWeight: 500 }}>
                               {formatCurrency(itemNetVal(watch(`items.${index}`) || {}))}
-                            </TableCell>
-                            <TableCell>
-                              {/* Briefing C: comissão personalizada por item (% ou R$) */}
-                              <Box sx={{ display: 'flex', gap: 0.5 }}>
-                                <TextField
-                                  size="small"
-                                  type="number"
-                                  inputProps={{ step: 0.01, min: 0 }}
-                                  sx={{ width: 80 }}
-                                  value={
-                                    (watch(`items.${index}.commissionType`) || 'PERCENT') === 'VALUE'
-                                      ? (watch(`items.${index}.commissionValue`) ?? '')
-                                      : (watch(`items.${index}.commissionPercent`) ?? '')
-                                  }
-                                  onChange={(e) => setValue(
-                                    `items.${index}.${(watch(`items.${index}.commissionType`) || 'PERCENT') === 'VALUE' ? 'commissionValue' : 'commissionPercent'}`,
-                                    e.target.value === '' ? 0 : Number(e.target.value),
-                                    { shouldDirty: true },
-                                  )}
-                                />
-                                <FormControl size="small" sx={{ width: 72 }}>
-                                  <Select
-                                    value={watch(`items.${index}.commissionType`) || 'PERCENT'}
-                                    onChange={(e) => setValue(`items.${index}.commissionType`, e.target.value as 'PERCENT' | 'VALUE', { shouldDirty: true })}
-                                  >
-                                    <MenuItem value="PERCENT">%</MenuItem>
-                                    <MenuItem value="VALUE">R$</MenuItem>
-                                  </Select>
-                                </FormControl>
-                              </Box>
-                              <Tooltip title="Valor da comissão deste item (líquido × % ou R$ fixo)">
-                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                                  {formatCurrency(itemCommission(watch(`items.${index}`) || {}))}
-                                </Typography>
-                              </Tooltip>
                             </TableCell>
                             <TableCell>
                               <IconButton size="small" onClick={() => removeItem(index)}><Delete fontSize="small" /></IconButton>

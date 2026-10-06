@@ -396,31 +396,6 @@ export function SaleFormPage() {
           </TextField>
         </Stack>
       </TableCell>
-      <TableCell>
-        <Stack direction="row" spacing={0.5}>
-          <TextField
-            select size="small" value={it.commissionType}
-            onChange={(e) => updateItem(it.key, { commissionType: e.target.value as 'PERCENT' | 'VALUE' })}
-            sx={{ width: 95 }}
-          >
-            <MenuItem value="PERCENT">%</MenuItem>
-            <MenuItem value="VALUE">R$</MenuItem>
-          </TextField>
-          <TextField
-            type="number" size="small"
-            value={it.commissionType === 'PERCENT' ? it.commissionPercent : it.commissionValue}
-            onChange={(e) => {
-              const v = Math.max(0, Number(e.target.value) || 0);
-              updateItem(
-                it.key,
-                it.commissionType === 'PERCENT' ? { commissionPercent: v } : { commissionValue: v }
-              );
-            }}
-            inputProps={{ style: { textAlign: 'right' }, step: 0.01, min: 0 }}
-            sx={{ width: 75 }}
-          />
-        </Stack>
-      </TableCell>
       <TableCell align="right" sx={{ fontWeight: 600 }}>{formatCurrency(itemNet(it))}</TableCell>
       <TableCell align="center">
         <IconButton size="small" color="error" onClick={() => removeItem(it.key)}>
@@ -475,7 +450,7 @@ export function SaleFormPage() {
             {isEdit ? `Editar Venda ${sale?.code || ''}` : 'Nova Venda'}
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Venda de mercadoria — dá baixa no estoque e calcula comissões automaticamente
+            Venda de mercadoria — dá baixa no estoque e registra a nota
           </Typography>
         </Box>
         <SecondaryButton onClick={() => navigate('/sales')}>Voltar</SecondaryButton>
@@ -563,7 +538,6 @@ export function SaleFormPage() {
                       <TableCell align="right" style={{ width: 80 }}>Qtd</TableCell>
                       <TableCell align="right" style={{ width: 110 }}>Vl. unit.</TableCell>
                       <TableCell style={{ width: 175 }}>Desconto</TableCell>
-                      <TableCell style={{ width: 185 }}>Comissão</TableCell>
                       <TableCell align="right" style={{ width: 110 }}>Total</TableCell>
                       <TableCell style={{ width: 50 }} />
                     </TableRow>
@@ -674,10 +648,6 @@ export function SaleFormPage() {
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                   <Typography variant="subtitle1" fontWeight={700}>Total</Typography>
                   <Typography variant="h5" fontWeight={700} color="primary.main">{formatCurrency(total)}</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                  <Typography color="text.secondary">Comissão total</Typography>
-                  <Typography color="success.main" fontWeight={600}>{formatCurrency(totalCommission)}</Typography>
                 </Box>
 
                 <Box sx={{ display: 'flex', gap: 2, mt: 2, justifyContent: 'flex-end' }}>

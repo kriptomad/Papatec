@@ -68,6 +68,38 @@ function computeCommission(items: any[]): number {
   return round2(total);
 }
 
+/**
+ * Comissão é dado INTERNO e sempre existiu como cálculo — o que muda é que ela
+ * deixou de ser digitada. A origem é o cadastro do produto
+ * (Part.commissionPercent); ninguém informa o valor na O.S. nem na venda.
+ *
+ * Antes o backend aceitava o valor que vinha no corpo da requisição. Com o
+ * campo removido da tela, ainda dava para mandar 0 (ou 90) no payload e
+ * escolher a comissão que convinha. Aqui o backend SOBRESCREVE sempre com o
+ * percentual do produto, então o valor não depende mais do que o cliente
+ * manda — só o admin mexe no cadastro do produto.
+ *
+ * Item sem partId (mão de obra, serviço avulso) fica sem comissão: não há
+ * produto de onde tirar o percentual.
+ */
+async function applyProductCommission(items: any[]): Promise<any[]> {
+  const partIds = items.map((i) => i.partId).filter((id): id is string => !!id);
+  if (!partIds.length) return items;
+
+  const parts = await prisma.part.findMany({
+    where: { id: { in: [...new Set(partIds)] } },
+    select: { id: true, commissionPercent: true },
+  });
+  const porPart = new Map(parts.map((p) => [p.id, Number(p.commissionPercent) || 0]));
+
+  return items.map((i) => ({
+    ...i,
+    commissionPercent: i.partId ? (porPart.get(i.partId) ?? 0) : 0,
+    commissionValue: 0,
+    commissionType: 'PERCENT',
+  }));
+}
+
 /** Valor líquido de um item já com o desconto aplicado. */
 function itemNet(i: { qty: number; unitPrice: number; discount?: number; discountType?: string }) {
   const base = round2(i.qty * i.unitPrice);
@@ -371,6 +403,8 @@ serviceOrdersRouter.post(
   handler(async (req, res) => {
     const body = req.body?.data ? JSON.parse(req.body.data) : req.body;
     const payload = validatePayload(body);
+    // Comissão não é digitada: o backend tira o % do cadastro do produto.
+    payload.items = await applyProductCommission(payload.items);
     await validateItemDiscounts(payload.items);
 
     const client = await prisma.client.findUnique({ where: { id: payload.clientId } });
@@ -518,6 +552,8 @@ serviceOrdersRouter.put(
 
     const body = req.body?.data ? JSON.parse(req.body.data) : req.body;
     const payload = validatePayload(body);
+    // Comissão não é digitada: o backend tira o % do cadastro do produto.
+    payload.items = await applyProductCommission(payload.items);
     await validateItemDiscounts(payload.items);
 
     const client = await prisma.client.findUnique({ where: { id: payload.clientId } });

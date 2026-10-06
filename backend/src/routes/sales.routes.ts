@@ -29,6 +29,34 @@ async function nextSaleCode(tx: Prisma.TransactionClient): Promise<string> {
  *
  * Executa ANTES de abrir a transação, para não deixar estado meio escrito.
  */
+/**
+ * Sobrescreve a comissão de cada item pelo percentual do cadastro do produto.
+ *
+ * A comissão deixou de ser digitada (sumiu da tela de venda por ser informação
+ * interna do vendedor, que só o vê na aba "Comissão"). Sem isto o valor viria
+ * do corpo da requisição — ou seja, zerado, já que o campo não é mais enviado.
+ *
+ * Muta o array no lugar porque os itens são usados depois, dentro da transação.
+ * Item sem partId (descrição livre) fica em 0: não há produto de onde tirar %.
+ */
+async function applyProductCommission(items: any[]): Promise<void> {
+  const partIds = items.map((i) => i?.partId).filter((id): id is string => !!id);
+  if (!partIds.length) return;
+
+  const parts = await prisma.part.findMany({
+    where: { id: { in: [...new Set(partIds)] } },
+    select: { id: true, commissionPercent: true },
+  });
+  const porPart = new Map(parts.map((p) => [p.id, Number(p.commissionPercent) || 0]));
+
+  for (const item of items) {
+    if (!item || typeof item !== 'object') continue;
+    item.commissionPercent = item.partId ? (porPart.get(item.partId) ?? 0) : 0;
+    item.commissionValue = 0;
+    item.commissionType = 'PERCENT';
+  }
+}
+
 async function assertSaleDiscountsAllowed(
   items: any[],
   saleDiscount: any,
@@ -146,6 +174,11 @@ salesRouter.post(
 
     // B3/A1: bloqueia desconto acima do teto configurado ANTES de transacionar
     await assertSaleDiscountsAllowed(items, discount, discountType);
+
+    // Comissão é interna e NÃO é digitada na venda. A origem é o cadastro do
+    // produto (Part.commissionPercent). Sem isto o valor vinha do corpo da
+    // requisição — e o campo saiu da tela, então o payload não deve mandar.
+    await applyProductCommission(items);
 
     const sale = await prisma.$transaction(async (tx) => {
       const code = await nextSaleCode(tx);

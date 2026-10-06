@@ -128,7 +128,6 @@ export function SalesPage() {
       <TableCell align="center">{row.items?.length ?? row._count?.items ?? 0}</TableCell>
       <TableCell>{paymentLabel(row.paymentMethod)}</TableCell>
       <TableCell align="right" sx={{ fontWeight: 600 }}>{formatCurrency(row.total)}</TableCell>
-      <TableCell align="right" sx={{ color: 'success.main' }}>{formatCurrency(row.totalCommission)}</TableCell>
       <TableCell align="center" onClick={(e) => e.stopPropagation()}>
         <Tooltip title="Ver detalhes">
           <IconButton size="small" onClick={() => navigate(`/sales/${row.id}`)}>
@@ -170,7 +169,7 @@ export function SalesPage() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
         <Box>
           <Typography variant="h4" fontWeight={700} sx={{ mb: 0.5 }}>Vendas</Typography>
-          <Typography variant="body1" color="text.secondary">Venda de mercadoria — notas VDA, comissões e devoluções</Typography>
+          <Typography variant="body1" color="text.secondary">Venda de mercadoria — notas VDA e devoluções</Typography>
         </Box>
         <PrimaryButton startIcon={<Add />} onClick={() => navigate('/sales/new')}>Nova Venda</PrimaryButton>
       </Box>
@@ -239,7 +238,6 @@ export function SalesPage() {
                 <TableCell align="center">Itens</TableCell>
                 <TableCell>Pagamento</TableCell>
                 <TableCell align="right">Total</TableCell>
-                <TableCell align="right">Comissão</TableCell>
                 <TableCell align="center">Ações</TableCell>
               </TableRow>
             </TableHead>
