@@ -2,13 +2,16 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../db/prisma';
 import { requireAuth, requireRole } from '../middleware/auth';
 import { handler } from '../http/errors';
-import { ok, created, notFound, badRequest } from '../http/envelope';
+import { ok, created, notFound, badRequest, forbidden } from '../http/envelope';
 // B3/A1: mesmo teto de desconto aplicado em O.S. e orçamento. Vendas era o
 // único módulo que NÃO validava — deixava passar desconto acima do configurado.
 import { assertDiscountAllowed } from '../utils/discounts';
 import { Prisma } from '@prisma/client';
 
 export const salesRouter = Router();
+
+/** Arredonda para 2 casas — comissão é dinheiro e não pode acumular sobra de float. */
+const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
 
 // Helper: gerar próximo código VDA-XXXX
 async function nextSaleCode(tx: Prisma.TransactionClient): Promise<string> {
@@ -85,6 +88,113 @@ async function assertSaleDiscountsAllowed(
     label: 'Desconto geral da venda',
   });
 }
+
+// ---------------------------------------------------------------------------
+// GET /api/sales/commission?days=90&startDate=&endDate=&userId=
+//
+// Relatório de comissão: os PRODUTOS vendidos, com o valor de venda e o valor
+// de comissão de cada linha.
+//
+// A comissão é informação interna do vendedor — não sai na O.S., na venda, no
+// orçamento nem na nota (ver applyProductCommission). Este é o único lugar
+// onde ela aparece.
+//
+// O período é filtrado pela DATA DA VENDA (Sale.createdAt). A janela padrão é
+// de 90 dias, e o cliente pode mandar outra em `days` ou um intervalo fechado
+// em `startDate`/`endDate`.
+//
+// Admin pode restringir a um vendedor (`userId`); sem ele, o vendedor comum vê
+// as próprias vendas. O filtro é aplicado no servidor de propósito: se fosse
+// só no front, o vendedor veria o resultado completo ao abrir o DevTools.
+// ---------------------------------------------------------------------------
+salesRouter.get(
+  '/commission',
+  requireAuth,
+  handler(async (req: Request, res: Response) => {
+    const { days, startDate, endDate, userId } = req.query as Record<string, string>;
+    const isAdmin = req.user!.role === 'ADMIN';
+
+    // Janela padrão: 90 dias
+    const dias = Math.min(Math.max(Number(days) || 90, 1), 3650);
+
+    let de: Date;
+    let ate: Date;
+    if (startDate || endDate) {
+      de = startDate ? new Date(startDate) : new Date(Date.now() - dias * 86400000);
+      ate = endDate ? new Date(endDate) : new Date();
+    } else {
+      ate = new Date();
+      de = new Date(ate.getTime() - dias * 86400000);
+    }
+    if (Number.isNaN(de.getTime()) || Number.isNaN(ate.getTime())) {
+      throw badRequest('Período inválido.', 'INVALID_DATE_RANGE');
+    }
+
+    const where: any = { sale: { createdAt: { gte: de, lte: ate } } };
+    // Sem ser admin, o vendedor só enxerga o que ele vendeu.
+    if (userId) {
+      if (!isAdmin && userId !== req.user!.id) {
+        throw forbidden('Sem permissão para ver a comissão de outro vendedor.', 'FORBIDDEN');
+      }
+      where.sale.userId = userId;
+    } else if (!isAdmin) {
+      where.sale.userId = req.user!.id;
+    }
+
+    const itens = await prisma.saleItem.findMany({
+      where,
+      orderBy: { sale: { createdAt: 'desc' } },
+      include: {
+        sale: { select: { id: true, code: true, createdAt: true, total: true, user: { select: { id: true, name: true } }, client: { select: { name: true } } } },
+        part: { select: { id: true, code: true, name: true } },
+      },
+    });
+
+    const linhas = itens.map((it) => {
+      const liquido = Number(it.total) || 0;
+      // commissionValue só existe para o modo legado; o padrão é percentual.
+      const comissao = it.commissionType === 'VALUE'
+        ? Number(it.commissionValue) || 0
+        : (liquido * (Number(it.commissionPercent) || 0)) / 100;
+      return {
+        id: it.id,
+        data: it.sale.createdAt,
+        vendaId: it.sale.id,
+        venda: it.sale.code || it.sale.id.slice(0, 8),
+        vendedor: it.sale.user?.name || '—',
+        cliente: it.sale.client?.name || 'Consumidor',
+        produto: it.part?.name || it.name,
+        codigo: it.part?.code || it.code || null,
+        qtd: it.qty,
+        valorUnit: Number(it.unitPrice) || 0,
+        valorVenda: liquido,
+        percentual: Number(it.commissionPercent) || 0,
+        comissao: round2(comissao),
+      };
+    });
+
+    const totalVenda = round2(linhas.reduce((s, l) => s + l.valorVenda, 0));
+    const totalComissao = round2(linhas.reduce((s, l) => s + l.comissao, 0));
+
+    // Agrupado por produto: é como o vendedor precisa ver a comissão.
+    const porProduto = new Map<string, { produto: string; codigo: string | null; qtd: number; valorVenda: number; comissao: number; percentual: number }>();
+    for (const l of linhas) {
+      const chave = l.codigo || l.produto;
+      const atual = porProduto.get(chave) || { produto: l.produto, codigo: l.codigo, qtd: 0, valorVenda: 0, comissao: 0, percentual: l.percentual };
+      atual.qtd += l.qtd;
+      atual.valorVenda = round2(atual.valorVenda + l.valorVenda);
+      atual.comissao = round2(atual.comissao + l.comissao);
+      porProduto.set(chave, atual);
+    }
+
+    ok(res, {
+      periodo: { de, ate, dias },
+      totais: { vendas: totalVenda, comissao: totalComissao, itens: linhas.length },
+      porProduto: [...porProduto.values()].sort((a, b) => b.comissao - a.comissao),
+      linhas,
+    });
+  }),
+);
 
 // GET /api/sales?page=&limit=&clientId=&userId=&startDate=&endDate=
 salesRouter.get(

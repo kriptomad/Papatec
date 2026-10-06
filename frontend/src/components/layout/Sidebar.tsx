@@ -1,5 +1,5 @@
 import { Drawer, List, ListItem, ListItemIcon, ListItemText, Box, Divider, Typography, IconButton, useMediaQuery, useTheme, Button, Tooltip } from '@mui/material';
-import { Menu as MenuIcon, ChevronLeft, ChevronRight, Dashboard, People, Assignment, Build, Inventory, Settings, BackupTable, Key, ExitToApp, LocalShipping, ShoppingCart, PointOfSale, CalendarMonth, EventNote, Badge, Assessment } from '@mui/icons-material';
+import { Menu as MenuIcon, ChevronLeft, ChevronRight, Dashboard, People, Assignment, Build, Inventory, Settings, BackupTable, Key, ExitToApp, LocalShipping, ShoppingCart, PointOfSale, CalendarMonth, EventNote, Badge, Assessment, Percent } from '@mui/icons-material';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../store/auth';
 import type { UserRole } from '../../types';
@@ -14,6 +14,9 @@ const menuItems: { path: string; label: string; icon: JSX.Element; roles: MenuRo
   { path: '/budgets', label: 'Orçamentos', icon: <Assignment />, roles: ['ADMIN', 'TECHNICIAN', 'RECEPTIONIST'] },
   { path: '/service-orders', label: 'Ordens de Serviço', icon: <Build />, roles: ['ADMIN', 'TECHNICIAN', 'RECEPTIONIST'] },
   { path: '/sales', label: 'Vendas', icon: <PointOfSale />, roles: ['ADMIN', 'TECHNICIAN', 'RECEPTIONIST'] },
+  // Comissão é informação interna do vendedor: só ele e o ADMIN. O técnico não
+  // vê (não vende) e não deve ver o valor de comissão de ninguém.
+  { path: '/commission', label: 'Comissão', icon: <Percent />, roles: ['ADMIN', 'RECEPTIONIST'] },
   { path: '/calendar', label: 'Calendário', icon: <CalendarMonth />, roles: ['ADMIN', 'TECHNICIAN', 'RECEPTIONIST'] },
   { path: '/visits', label: 'Agenda / Horas', icon: <EventNote />, roles: ['ADMIN', 'TECHNICIAN', 'RECEPTIONIST'] },
   { path: '/inventory', label: 'Estoque', icon: <Inventory />, roles: ['ADMIN', 'TECHNICIAN'] },

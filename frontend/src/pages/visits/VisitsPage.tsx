@@ -17,6 +17,24 @@ import { useNavigate } from 'react-router-dom';
 // ---------------------------------------------------------------------------
 const EMPTY: any[] = [];
 
+/**
+ * Rótulo de uma opção de O.S.
+ *
+ * BUG corrigido: as opções vindas da API são objetos de O.S. (osNumber,
+ * client) e NÃO têm um campo `label` — o label só era montado no `onChange`,
+ * como estado do formulário. Com `getOptionLabel={(o) => o.label || ''}` toda
+ * opção renderizava VAZIA: o dropdown abria (por isso "um dropdown preto")
+ * mas sem uma linha legível. Mesma classe do bug do "undefined - undefined".
+ */
+function osLabel(option: any): string {
+  if (!option) return '';
+  if (option.label) return String(option.label);
+  const numero = option.osNumber || option.id || '';
+  const cliente = option.client?.name || option.clientName || '';
+  if (!cliente) return String(numero);
+  return `${numero} — ${cliente}`;
+}
+
 const pad = (n: number) => String(n).padStart(2, '0');
 
 const toISODate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -630,14 +648,14 @@ export function VisitsPage() {
                 options={osOptions}
                 value={form.osId ? { id: form.osId, label: form.osLabel } : null}
                 inputValue={osSearch}
-                getOptionLabel={(option: any) => option.label || ''}
+                getOptionLabel={(option: any) => osLabel(option)}
                 isOptionEqualToValue={(option: any, value: any) => option.id === value.id}
                 noOptionsText={osQuery.isFetching ? 'Buscando...' : 'Nenhuma O.S. encontrada'}
                 onChange={(_e: any, option: any) => {
                   setForm({
                     ...form,
                     osId: option?.id || '',
-                    osLabel: option ? `${option.osNumber || option.id} — ${option.client?.name || ''}` : '',
+                    osLabel: osLabel(option),
                   });
                 }}
                 onInputChange={(_e: any, value: any) => setOsSearch(value || '')}
@@ -820,12 +838,12 @@ export function VisitsPage() {
                 <Autocomplete
                   options={scheduleOsOptions}
                   value={scheduleOsId ? { id: scheduleOsId, label: scheduleOsLabel } : null}
-                  getOptionLabel={(option: any) => option.label || ''}
+                  getOptionLabel={(option: any) => osLabel(option)}
                   isOptionEqualToValue={(option: any, value: any) => option.id === value.id}
                   noOptionsText={scheduleOsQuery.isFetching ? 'Buscando...' : 'Nenhuma O.S. encontrada'}
                   onChange={(_e: any, option: any) => {
                     setScheduleOsId(option?.id || '');
-                    setScheduleOsLabel(option ? `${option.osNumber || option.id} — ${option.client?.name || ''}` : '');
+                    setScheduleOsLabel(osLabel(option));
                   }}
                   onInputChange={(_e: any, value: any) => setScheduleOsSearch(value || '')}
                   renderInput={(params) => (

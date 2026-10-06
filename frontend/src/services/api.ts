@@ -581,4 +581,12 @@ export const salesApi = {
   // Briefing: devolução/troca gera documento e devolve estoque
   returns: (saleId: string) => get<any[]>(`/sales/${saleId}/returns`),
   createReturn: (saleId: string, data: any) => post<any>(`/sales/${saleId}/returns`, data),
+  // Comissão: o único lugar onde ela aparece (não sai em O.S., venda, nota).
+  // `days` é a janela padrão (90); startDate/endDate sobrescrevem para um
+  // intervalo fechado. `userId` só é aceito para ADMIN — o vendedor comum é
+  // filtrado no servidor e vê apenas as próprias vendas.
+  commission: (params?: { days?: number; startDate?: string; endDate?: string; userId?: string }) =>
+    get<any>('/sales/commission', params),
+  // Lista de vendedores para o filtro da tela de comissão (uso do ADMIN).
+  listSellers: () => get<any[]>('/users?role=RECEPTIONIST&limit=200'),
 };

@@ -26,6 +26,7 @@ import { SalesPage } from './pages/sales/SalesPage';
 import { SaleFormPage } from './pages/sales/SaleFormPage';
 import { SaleDetailPage } from './pages/sales/SaleDetailPage';
 import { SalePrintPage } from './pages/sales/SalePrintPage';
+import { CommissionPage } from './pages/sales/CommissionPage';
 import { CalendarPage } from './pages/calendar/CalendarPage';
 import { VisitsPage } from './pages/visits/VisitsPage';
 import { EmployeesPage } from './pages/employees/EmployeesPage';
@@ -121,6 +122,8 @@ function App() {
           <Route path="/sales/:id" element={<SaleDetailPage />} />
           <Route path="/sales/:id/edit" element={<SaleFormPage />} />
           <Route path="/sales/:id/print" element={<SalePrintPage />} />
+        {/* Comissão: visível para vendedor (RECEPTIONIST) e ADMIN. */}
+        <Route path="/commission" element={<CommissionPage />} />
         </Route>
         
         <Route path="/calendar" element={<CalendarPage />} />

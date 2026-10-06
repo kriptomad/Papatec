@@ -1018,8 +1018,28 @@ export function ServiceOrderFormPage() {
               )}
 
               {equipmentFields.map((field, index) => (
-                <Box key={field.id} sx={{ border: 1, borderColor: 'divider', borderRadius: 2, p: 2, mb: 2, position: 'relative' }}>
-                  <IconButton size="small" onClick={() => removeEquipment(index)} sx={{ position: 'absolute', top: 8, right: 8 }}><Delete fontSize="small" /></IconButton>
+                /* pr: 6 reserva a faixa da direita para a lixeira. Sem isso o
+                   terceiro campo (xs=12 sm=4) chegava embaixo do IconButton
+                   absoluto e o clique na lixeira caia no TextField — o cliente
+                   relatou que "tem que clicar do lado, fora da caixa". */
+                <Box key={field.id} sx={{ border: 1, borderColor: 'divider', borderRadius: 2, p: 2, pr: 6, mb: 2, position: 'relative' }}>
+                  <Tooltip title="Remover equipamento">
+                    <IconButton
+                      aria-label={`Remover equipamento ${index + 1}`}
+                      size="small"
+                      onClick={() => removeEquipment(index)}
+                      sx={{
+                        position: 'absolute',
+                        top: 8,
+                        right: 8,
+                        zIndex: 2,
+                        bgcolor: 'background.paper',
+                        '&:hover': { bgcolor: 'error.main', color: 'error.contrastText' },
+                      }}
+                    >
+                      <Delete fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
                   <Grid container spacing={2}>
                     <Grid item xs={12} sm={4}>
                       <TextField fullWidth label="Nome do Equipamento *" {...register(`equipment.${index}.name`)} />
