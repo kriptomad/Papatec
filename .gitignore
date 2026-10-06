@@ -48,8 +48,26 @@ Thumbs.db
 # Backup files
 backups/
 *.7z
-*.sql
 *.dump
+
+# Dump de banco.
+#
+# NAO usar '*.sql' generico aqui. O Prisma nomeia o arquivo de cada migracao
+# exatamente "migration.sql", entao a regra engolia TODAS as 11 migracoes: o
+# repositorio ficava so com o migration_lock.toml e qualquer clone novo
+# subia com o banco sem tabela nenhuma (no Render:
+#     "No migration found in prisma/migrations / No pending migrations")
+# enquanto a maquina de desenvolvimento continuava funcionando, porque ai os
+# arquivos existem em disco.
+*.sql
+
+# ...mas as migracoes do Prisma tem que entrar, deploy depende delas.
+# A negacao precisa casar com o ARQUIVO. Com '!backend/prisma/migrations/**/'
+# (so diretorios) o check-ignore continuava apontando '*.sql' para o migration.sql
+# e nada era versionado.
+!backend/prisma/migrations/
+!backend/prisma/migrations/**/
+!backend/prisma/migrations/**/migration.sql
 
 # Uploads (dados dos clientes)
 uploads/
