@@ -35,7 +35,19 @@ const TYPE_COLORS: Record<string, string> = {
   CUSTOM: '#757575',
 };
 
-const EVENT_TYPES: EventType[] = ['APPOINTMENT', 'HOLIDAY', 'SPECIAL_DATE', 'LUNCH_BREAK', 'BUSINESS_HOURS', 'CUSTOM'];
+/**
+ * Tipos oferecidos no dropdown de "+ Novo Evento".
+ *
+ * APPOINTMENT ficou de fora de propósito: agendamento técnico é feito em
+ * "Agenda / Horas", e o calendário é só onde o evento aprovado aparece. Deixar
+ * a opção aqui permitia criar um agendamento pelo calendário, sem técnico, sem
+ * técnico responsável e fora do fluxo de aprovação — que é exatamente o que a
+ * Agenda / Horas controla.
+ *
+ * APPOINTMENT continua em TYPE_LABELS, QUICK_TYPES e LEGEND: os eventos que a
+ * Agenda cria precisam continuar sendo rotulados e coloridos aqui.
+ */
+const EVENT_TYPES: EventType[] = ['HOLIDAY', 'SPECIAL_DATE', 'LUNCH_BREAK', 'BUSINESS_HOURS', 'CUSTOM'];
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 

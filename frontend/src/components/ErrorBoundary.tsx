@@ -47,7 +47,10 @@ export class ErrorBoundary extends Component<Props, State> {
           </Typography>
           <details style={{ textAlign: 'left', marginTop: 16, maxWidth: 600, margin: '16px auto 0' }}>
             <summary style={{ cursor: 'pointer', color: 'text.secondary' }}>Detalhes técnicos</summary>
-            <pre style={{ marginTop: 8, padding: 12, background: '#f5f5f5', borderRadius: 4, overflow: 'auto', textAlign: 'left', fontSize: 12 }}>
+            {/* #f5f5f5 sem cor de texto: num tema escuro o <pre> herdava text.secondary
+                (#8b949e) sobre fundo quase branco e o stack trace ficava ilegível
+                - justo a tela que existe para ser lida em um crash. */}
+            <pre style={{ marginTop: 8, padding: 12, background: '#0d1117', color: '#e6edf3', border: '1px solid #30363d', borderRadius: 4, overflow: 'auto', textAlign: 'left', fontSize: 12 }}>
               {this.state.error?.message}
               <br />
               {this.state.error?.stack}

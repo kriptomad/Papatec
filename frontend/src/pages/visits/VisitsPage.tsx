@@ -140,6 +140,19 @@ const emptyForm = (): VisitFormState => ({
 // ---------------------------------------------------------------------------
 // Página
 // ---------------------------------------------------------------------------
+/**
+ * Soma minutos a "HH:MM" e devolve "HH:MM".
+ * Usado só para mostrar ao cliente até onde vai a visita — o cálculo oficial
+ * continua no backend (o slot é enviado como scheduledAt).
+ */
+function addMinutes(hhmm: string, minutos: number): string {
+  const [h, m] = hhmm.split(':').map((n) => parseInt(n, 10) || 0);
+  const total = h * 60 + m + minutos;
+  const hh = Math.floor(total / 60) % 24;
+  const mm = total % 60;
+  return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+}
+
 export function VisitsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -168,6 +181,11 @@ export function VisitsPage() {
   const [scheduleDay, setScheduleDay] = useState<string | null>(null);
   const [scheduleTechId, setScheduleTechId] = useState('');
   const [scheduleDuration, setScheduleDuration] = useState<number | null>(null);
+  // Horário de INÍCIO escolhido nos slots. Antes não existia: os botões de
+  // horário eram informativos (`onClick` vazio) e o agendamento saía sempre em
+  // meia-noite (T00:00:00). O cliente reclamei que "ao clicar não sinaliza
+  // nada, nem mostra o horário selecionado".
+  const [scheduleSlot, setScheduleSlot] = useState<string>('');
   const [scheduleOsId, setScheduleOsId] = useState('');
   const [scheduleOsLabel, setScheduleOsLabel] = useState('');
   const [scheduleOsSearch, setScheduleOsSearch] = useState('');
@@ -396,17 +414,23 @@ export function VisitsPage() {
       setScheduleError('Informe a duração prevista (Tempo Serviço).');
       return;
     }
+    if (!scheduleSlot) {
+      setScheduleError('Selecione o horário de início da visita.');
+      return;
+    }
     setScheduleSaving(true);
     try {
       const payload: any = {
         osId: scheduleOsId,
         date: scheduleDay,
-        scheduledAt: new Date(`${scheduleDay}T00:00:00`).toISOString(),
+        // Horário escolhido nos slots. Antes era fixo em meia-noite, o que
+        // ignorava o que o técnico marcava na tela.
+        scheduledAt: new Date(`${scheduleDay}T${scheduleSlot}:00`).toISOString(),
         // `null` explícito = SEM técnico (ver comentário no diálogo "Nova Visita").
         techId: scheduleTechId || null,
         durationMinutes: scheduleDuration,
         needsSecondVisit: false,
-        notes: `Agendado via popup — duração: ${scheduleDuration}min`,
+        notes: `Agendado via popup — início ${scheduleSlot}, duração: ${scheduleDuration}min`,
       };
       await serviceVisitsApi.create(payload);
       setScheduleOpen(false);
@@ -554,7 +578,7 @@ export function VisitsPage() {
           <PrimaryButton startIcon={<Add />} onClick={openDialog}>
             Nova Visita
           </PrimaryButton>
-          <PrimaryButton startIcon={<Event />} onClick={() => { setScheduleOpen(true); setScheduleMonth(new Date()); setScheduleDay(null); setScheduleOsId(''); setScheduleOsLabel(''); setScheduleOsSearch(''); setScheduleTechId(''); setScheduleDuration(null); setScheduleError(null); }} color="secondary" variant="contained">
+          <PrimaryButton startIcon={<Event />} onClick={() => { setScheduleOpen(true); setScheduleMonth(new Date()); setScheduleDay(null); setScheduleOsId(''); setScheduleOsLabel(''); setScheduleOsSearch(''); setScheduleTechId(''); setScheduleDuration(null); setScheduleSlot(''); setScheduleError(null); }} color="secondary" variant="contained">
             Agendar
           </PrimaryButton>
         </Box>
@@ -775,7 +799,10 @@ export function VisitsPage() {
                           fontWeight: isToday ? 700 : 400,
                           '&:hover': { backgroundColor: isSelected ? 'primary.dark' : 'action.hover' },
                         }}
-                        onClick={() => setScheduleDay(dateStr)}
+                        // Trocar de dia descarta o horário escolhido: os slots são recalculados
+                        // (a lista depende da agenda do dia) e o antigo deixaria
+                        // de bater com as horas livres mostradas.
+                        onClick={() => { setScheduleDay(dateStr); setScheduleSlot(''); }}
                       >
                         {day}
                       </Box>
@@ -814,20 +841,39 @@ export function VisitsPage() {
                         if (!cached) return <Typography variant="body2" color="text.secondary">Carregando horários...</Typography>;
                         const slots = cached.slots || [];
                         if (slots.length === 0) return <Typography variant="body2" color="text.secondary">Nenhum horário disponível neste dia.</Typography>;
-                        return slots.map((slot: any) => (
-                          <Button
-                            key={slot.label}
-                            size="small"
-                            variant={slot.available ? 'outlined' : 'text'}
-                            color={slot.available ? 'primary' : 'inherit'}
-                            disabled={!slot.available}
-                            onClick={() => { /* slot apenas informativo; duração define o fim */ }}
-                          >
-                            {slot.label} {slot.available ? '✓' : '✗'}
-                          </Button>
-                        ));
+                        return slots.map((slot: any) => {
+                          const selecionado = scheduleSlot === slot.label;
+                          return (
+                            <Button
+                              key={slot.label}
+                              size="small"
+                              // Selecionado fica VERDE e preenchido. Antes o
+                              // onClick era vazio e não havia estado, então o
+                              // técnico clicava e nada acontecia.
+                              variant={selecionado ? 'contained' : slot.available ? 'outlined' : 'text'}
+                              color={selecionado ? 'success' : slot.available ? 'primary' : 'inherit'}
+                              disabled={!slot.available}
+                              onClick={() => setScheduleSlot(selecionado ? '' : slot.label)}
+                              aria-pressed={selecionado}
+                            >
+                              {slot.label} {slot.available ? '✓' : '✗'}
+                            </Button>
+                          );
+                        });
                       })()}
                     </Box>
+
+                    {/* Confirmação do horário escolhido + onde a visita termina.
+                        Sem isso o técnico clicava no horário e não tinha como
+                        saber que o clique pegou. */}
+                    {scheduleSlot && (
+                      <Alert severity="success" icon={<CheckCircle />} sx={{ mb: 2 }}>
+                        Horário <strong>{scheduleSlot}</strong> selecionado
+                        {scheduleDuration
+                          ? ` — das ${scheduleSlot} às ${addMinutes(scheduleSlot, scheduleDuration)} (${scheduleDuration}min)`
+                          : '. Agora escolha a duração ao lado.'}
+                      </Alert>
+                    )}
                   </>
                 )}
               </Box>
@@ -887,7 +933,7 @@ export function VisitsPage() {
           <Button onClick={() => setScheduleOpen(false)} disabled={scheduleSaving}>
             Cancelar
           </Button>
-          <PrimaryButton onClick={submitScheduleVisit} loading={scheduleSaving} disabled={!scheduleDay || !scheduleDuration}>
+          <PrimaryButton onClick={submitScheduleVisit} loading={scheduleSaving} disabled={!scheduleDay || !scheduleDuration || !scheduleSlot}>
             Agendar
           </PrimaryButton>
         </DialogActions>

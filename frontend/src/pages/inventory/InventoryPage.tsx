@@ -157,7 +157,13 @@ export function InventoryPage() {
             </TableHead>
             <TableBody>
               {data?.data.map((row: any) => (
-                <TableRow key={row.id} hover sx={{ backgroundColor: row.needsRestock ? '#fff8e1' : undefined }}>
+                /* #fff8e1 (warning.light do MUI) é um âmbar CLARO. Numa tabela de tema
+                   escuro ele estoura: o texto da linha é #e6edf3 (quase branco) e
+                   some sobre o creme - o cliente via a peça "desaparecida" e só
+                   percebia passando o mouse. Agora é o mesmo tom com alpha, que
+                   funciona em fundo claro e escuro (como as demais destaques de
+                   MainLayout.css). */
+                <TableRow key={row.id} hover sx={{ backgroundColor: row.needsRestock ? 'rgba(255, 193, 7, 0.14)' : undefined }}>
                   <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
                     {row.code}
                     {row.barcode && (

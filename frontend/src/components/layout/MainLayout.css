@@ -155,6 +155,29 @@
   border-color: #1e88e5 !important;
 }
 
+/* Botão de CONFIRMAÇÃO (verde).
+   O preflight do Tailwind traz `button { background: transparent }` e ele
+   vence o estilo do MUI neste componente: o botão "contido" saía
+   transparente, com a cor do texto azul do outline. O técnico clicava no
+   horário da visita, o estado mudava (aria-pressed) e na tela não aparecia
+   NADA - parecia que o clique não Registerava.
+   Os demais botões do tema já são resolvidos com !important; este faltava. */
+.MuiButton-containedSuccess {
+  background-color: #2e7d32 !important;
+  color: #ffffff !important;
+}
+
+.MuiButton-containedSuccess:hover {
+  background-color: #1b5e20 !important;
+  color: #ffffff !important;
+}
+
+.MuiButton-containedSuccess.Mui-disabled,
+.MuiButton-containedSuccess:disabled {
+  background-color: rgba(46, 125, 50, 0.5) !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
 /* Input improvements */
 .MuiOutlinedInput-root {
   border-radius: 8px !important;
