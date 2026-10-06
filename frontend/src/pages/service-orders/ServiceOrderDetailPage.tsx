@@ -121,7 +121,9 @@ export function ServiceOrderDetailPage() {
 
   const handleDelete = () => { if (window.confirm('Tem certeza que deseja excluir esta OS?')) deleteMutation.mutate(); };
 
-  const handlePrint = (via: 'cliente' | 'tecnico') => { window.open('/service-orders/' + id + '/print?via=' + via, '_blank'); };
+  // Abre a tela de impressão, que agora traz as 6 vias do modelo (o parametro
+  // `via` ficou obsoleto: a escolha de grupo é feita na própria tela).
+  const handlePrint = () => { window.open('/service-orders/' + id + '/print', '_blank'); };
 
   if (isLoading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>;
   if (!os) return <Alert severity="error">OS não encontrada</Alert>;
@@ -220,8 +222,9 @@ export function ServiceOrderDetailPage() {
             </Tooltip>
           )}
           <Box sx={{ display: 'flex', gap: 1 }}>
-            <IconButton color="primary" onClick={() => handlePrint('cliente')}><Print fontSize="medium" /></IconButton>
-            <Tooltip title="Via do Técnico"><IconButton color="secondary" onClick={() => handlePrint('tecnico')}><Print fontSize="medium" /></IconButton></Tooltip>
+            <Tooltip title="Imprimir O.S. (abertura e fechamento)">
+              <IconButton color="primary" onClick={() => handlePrint()}><Print fontSize="medium" /></IconButton>
+            </Tooltip>
           </Box>
           {canDelete && <Tooltip title="Excluir"><IconButton color="error" onClick={handleDelete}><Delete fontSize="medium" /></IconButton></Tooltip>}
         </Box>

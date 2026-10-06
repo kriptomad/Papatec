@@ -18,12 +18,22 @@ export interface SettingDefinition {
  */
 export const SETTING_DEFINITIONS: SettingDefinition[] = [
   // COMPANY
-  { key: 'company_name', value: 'PapaTec Assistência Técnica', category: 'COMPANY', label: 'Nome da empresa', type: 'string' },
-  { key: 'company_phone', value: '(11) 99999-9999', category: 'COMPANY', label: 'Telefone', type: 'string' },
-  { key: 'company_email', value: 'contato@papatec.com', category: 'COMPANY', label: 'E-mail', type: 'string' },
-  { key: 'company_address', value: '', category: 'COMPANY', label: 'Endereço', type: 'string' },
-  { key: 'company_document', value: '', category: 'COMPANY', label: 'CNPJ', type: 'string' },
+  // Valores tirados dos modelos de PDF que o cliente forneceu (abertura,
+  // fechamento e orcamento). Antes estes dados so existiam DENTRO dos PDFs:
+  // a impressao da O.S. saia com cabecalho generico, sem contato nenhum.
+  { key: 'company_name', value: 'PAPATEC INFORMÁTICA E TECNOLOGIA LTDA', category: 'COMPANY', label: 'Nome da empresa', type: 'string' },
+  { key: 'company_phone', value: '(19) 3426-8000', category: 'COMPANY', label: 'Telefone', type: 'string' },
+  { key: 'company_whatsapp', value: '(19) 9 9994-1818', category: 'COMPANY', label: 'WhatsApp', type: 'string' },
+  { key: 'company_email', value: 'comercial@papatec.com.br', category: 'COMPANY', label: 'E-mail principal', type: 'string' },
+  { key: 'company_emails_extra', value: 'contato@papatec.com.br / financeiro@papatec.com.br', category: 'COMPANY', label: 'Outros e-mails (rodapé)', type: 'string' },
+  { key: 'company_site', value: 'WWW.PAPATEC.COM.BR', category: 'COMPANY', label: 'Site', type: 'string' },
+  { key: 'company_address', value: 'Rua Ipiranga, 2190 - Bairro Centro - Piracicaba', category: 'COMPANY', label: 'Endereço', type: 'string' },
+  { key: 'company_document', value: '04.041.097/0001-31', category: 'COMPANY', label: 'CNPJ', type: 'string' },
   { key: 'receipt_footer', value: 'Obrigado pela preferência!', category: 'COMPANY', label: 'Rodapé de recibo', type: 'string' },
+  // Textos fixos que aparecem nas vias impressas ( vindos dos modelos )
+  { key: 'os_declaration_text', value: 'Declaro assumir qualquer responsabilidade, Fiscal, Software e Propriedade sobre o equipamento nas condições acima descrito. Orçamento aprovado ou reprovado deverá ser retirado no prazo máximo de 90 dias ou será vendido para cobrir os devidos custos.', category: 'COMPANY', label: 'Texto da declaração (via de abertura)', type: 'string' },
+  { key: 'os_pickup_note', value: 'OBSERVAÇÃO: O Equipamento deverá ser retirado no prazo máximo de 90 dias, caso contrário o mesmo será vendido p/ cobrir as despesas.', category: 'COMPANY', label: 'Observação da retirada (via de equipamento)', type: 'string' },
+  { key: 'os_pickup_terms', value: 'Declaro que o meu equipamento foi testado em minha presença e que o retirei com os mesmos Acessórios e Conservação acima descrito.', category: 'COMPANY', label: 'Declaração de retirada (via de fechamento)', type: 'string' },
 
   // FINANCIAL
   { key: 'default_labor_rate', value: 80, category: 'FINANCIAL', label: 'Valor/hora de mão de obra (R$)', type: 'number' },

@@ -10,7 +10,7 @@ import FormErrors from '../../components/ui/FormErrors';
 import { PrimaryButton, SecondaryButton, DangerButton } from '../../components/ui/Buttons';
 import { OSStatusChip } from '../../components/ui/StatusChips';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { Add, Delete, CheckCircle, Build } from '@mui/icons-material';
+import { Add, Delete, CheckCircle, Build, Print } from '@mui/icons-material';
 
 const itemSchema = z.object({
   // A API devolve `null` (e não `undefined`) para peça não vinculada.
@@ -1241,6 +1241,12 @@ export function ServiceOrderFormPage() {
           <CardContent>
             <Typography variant="h6" sx={{ mb: 2 }}>Ações Rápidas de Status</Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              {/* Imprimir já na EDIÇÃO (antes de concluir): o cliente decide se
+                  vai continuar com a O.S. ou não, e precisa da via impressa
+                  enquanto ela ainda está em aberto. */}
+              <SecondaryButton startIcon={<Print />} onClick={() => window.open('/service-orders/' + id + '/print', '_blank')}>
+                Imprimir O.S.
+              </SecondaryButton>
               <SecondaryButton startIcon={<Build />} onClick={() => statusMutation.mutate({ status: 'IN_PROGRESS', note: 'Iniciado reparo' })}>
                 Iniciar Reparo
               </SecondaryButton>
