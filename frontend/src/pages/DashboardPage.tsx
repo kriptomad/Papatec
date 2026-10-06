@@ -1,5 +1,6 @@
 import { Box, Grid, Card, CardContent, Typography, Chip, CircularProgress, Alert } from '@mui/material';
-import { Assignment, Build, People, Inventory, TrendingUp, Warning } from '@mui/icons-material';
+import { Assignment, Build, People, Inventory, TrendingUp, Warning, PointOfSale } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { budgetsApi, serviceOrdersApi, clientsApi, inventoryApi } from '../services/api';
 import { formatCurrency } from '../utils/formatters';
@@ -15,6 +16,7 @@ const statCards = [
 ];
 
 export function DashboardPage() {
+  const navigate = useNavigate();
   const { data: budgetsStats, isLoading: loadingBudgets } = useQuery({
     queryKey: ['budgetsStats'],
     queryFn: () => budgetsApi.getStats(),
@@ -138,10 +140,20 @@ export function DashboardPage() {
         <CardContent>
           <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>Ações Rápidas</Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-            <PrimaryButton startIcon={<Assignment />} href="/budgets/new">Novo Orçamento</PrimaryButton>
-            <PrimaryButton startIcon={<Build />} href="/service-orders/new">Nova OS</PrimaryButton>
-            <PrimaryButton startIcon={<People />} href="/clients/new">Novo Cliente</PrimaryButton>
-            <PrimaryButton startIcon={<Inventory />} href="/inventory/new">Nova Peça</PrimaryButton>
+            {/* BUG: estes botões usavam `href`, que o MUI renderiza como <a>.
+                Isso é navegação COMPLETA: o browser pede /budgets/new ao
+                servidor. No Docker o nginx salva com `try_files ... /index.html`,
+                mas num Static Site sem a regra de rewrite a resposta é 404 e o
+                cliente vê "página não encontrada". Como o destino é uma rota do
+                próprio React Router, o certo é navegar por client-side routing:
+                não depende de configuração nenhuma do servidor. */}
+            <PrimaryButton startIcon={<Assignment />} onClick={() => navigate('/budgets/new')}>Novo Orçamento</PrimaryButton>
+            <PrimaryButton startIcon={<Build />} onClick={() => navigate('/service-orders/new')}>Nova OS</PrimaryButton>
+            <PrimaryButton startIcon={<People />} onClick={() => navigate('/clients/new')}>Novo Cliente</PrimaryButton>
+            {/* "Peça" trazia ambiguidade: na manutenção, peça = componente.
+                O time lia "não temos peça" quando o produto existia. */}
+            <PrimaryButton startIcon={<Inventory />} onClick={() => navigate('/inventory/new')}>Novo Produto</PrimaryButton>
+            <PrimaryButton startIcon={<PointOfSale />} onClick={() => navigate('/sales/new')}>Nova Venda</PrimaryButton>
           </Box>
         </CardContent>
       </Card>

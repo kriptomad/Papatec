@@ -2,16 +2,43 @@
 #  DEPLOY NO RENDER — PapaTec Sistema Loja
 # ============================================================
 #
-#  O Render nao roda `docker compose`, entao o stack de 4 servicos
-#  (db + api + web + proxy) vira 3 recursos do Render:
+#  >>> LEIA ESTA PARTE ANTES DE TUDO <<<
 #
-#      PostgreSQL do Render   ->  DATABASE_URL
-#      Web Service (Node)     ->  a API
-#      Static Site            ->  o frontend (SPA)
+#  O PROBLEMA MAIS COMUM NESTE DEPLOY: "página não encontrada"
+#
+#  O PapaTec é um SPA (React Router com History API). As telas
+#  /login, /vendas, /clientes, /service-orders/123/print existem
+#  no roteador do React, mas NÃO existem como arquivo dentro de
+#  ./dist. O Static Site do Render, sem configuração, só entrega
+#  o que é arquivo de verdade — então qualquer caminho que não
+#  seja /index.html responde 404.
+#
+#  A correção é UMA regra no Static Site:
+#
+#      Render > papatec-web > Routes > Add
+#      Type        : Rewrite
+#      Source      : /*
+#      Destination : /index.html
+#
+#  Sem isso, o botão de imprimir não abre (ele usa window.open,
+#  que é navegação de verdade) e qualquer link colado na barra
+#  de endereços dá 404.
+#
+#  Teste rápido, depois de configurar:
+#      https://<site>.onrender.com/service-orders/1/print
+#  Se responder a página da impressão (ou o login), está certo.
+#  Se der "Page not found", falta a regra.
+#
+#  Os botões da Dashboard foram corrigidos no código para não
+#  dependerem disso (navegam por client-side routing). O
+#  window.open da impressão não tem como escapar: abrir uma
+#  aba nova é navegação real, o servidor precisa responder.
+#
+#  ---------------------------------------------------------
+#  Static Site            ->  o frontend (SPA)
 #
 #  O proxy nginx com HTTPS nao vem: o Render ja termina TLS e
 #  entrega HTTPS no dominio *.onrender.com.
-#
 #
 #  ---------------------------------------------------------
 #  1. CRIAR O BLUEPRINT
@@ -72,6 +99,15 @@
 #  Sem o passo 3 a tela abre e toda chamada vai para
 #  https://<site>/api - que devolve o index.html do SPA em vez de JSON.
 #
+#  5. Static Site papatec-web > Routes > Add
+#         Type        : Rewrite
+#         Source      : /*
+#         Destination : /index.html
+#
+#  Sem este passo a impressao nao abre e todo link colado na barra
+#  de enderecos da 404. O render.yaml ja traz a regra; quem cria o
+#  Static Site na mao precisa adicionar aqui.
+#
 #
 #  ---------------------------------------------------------
 #  4. VARIASVEIS QUE A API EXIGE
@@ -84,7 +120,10 @@
 #      JWT_PUBLIC_KEY_B64        COLAR  (passo 2)
 #      LICENSE_PUBLIC_KEY_B64    COLAR  (passo 2)
 #      NODE_ENV                  production
-#      JWT_EXPIRES_IN            7d
+#      JWT_EXPIRES_IN            NAO CONFIGURAR (variavel morta - nenhuma
+#                                 linha do codigo le. A validade do token vem
+#                                 de settingsService.get('session_days'), que
+#                                 e configuracao do banco, padrao 7 dias)
 #      DRM_BYPASS                true  (enquanto for teste)
 #      UPLOADS_PATH              /opt/render/project/src/uploads
 #      BACKUP_NETWORK_PATH       /opt/render/project/src/backups

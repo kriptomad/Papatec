@@ -121,8 +121,18 @@ services:
     buildCommand: npm ci && npm run build
     staticPublishPath: ./dist
     autoDeploy: true
+
+    # OBRIGATORIO. Este e um SPA com History API: /vendas, /login, /clientes
+    # sao rotas do React Router, mas nao existem como arquivo em ./dist. Sem
+    # esta regra o Static Site responde 404 em qualquer caminho que nao seja o
+    # index.html - e o cliente ve "pagina nao encontrada".
+    #
+    # Foi exatamente o que aconteceu: os botoes da Dashboard usavam href, que
+    # o MUI renderiza como <a>, ou seja navegacao COMPLETA. No Docker o nginx
+    # resolvia com try_files; no Render, nao.
     routes:
       - type: rewrite
+        source: /*
         destination: /index.html
 
     envVars:
